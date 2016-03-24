@@ -12,18 +12,63 @@ TransformMetric <- function(metric, name){
   return (metricData)
 }
  
- PerformanceTable <- function(returns){
+ RatioTable <- function(returns){
+  require(PerformanceAnalytics)
   # функция вычисления стандартных наборов метрик продуктивности для результатов работы стратегий
   # расчет коэффициентов
-  pMetric <- NA
+  # SharpeRatio
   Sharp.calc <-  SharpeRatio.annualized(returns, scale=1)
-  pMetric <- cbind(pMetric, TransformMetric(Sharp.calc, name="SharpRatio"))
+  # SortinoRatio
   Sortino.calc <- SortinoRatio(returns)
-  pMetric <- cbind(pMetric, TransformMetric(Sortino.calc, name="SortinoRatio"))
+  pMetric <- cbind(TransformMetric(Sharp.calc, name="SharpRatio"), TransformMetric(Sortino.calc, name="SortinoRatio"))
+  # CalmarRatio
   Calmar.calc <- CalmarRatio(returns, scale=1)
   pMetric <- cbind(pMetric, TransformMetric(Calmar.calc, name="CalmarRatio"))
-  Sterling.calc <-  SterlingRatio(returns, scale=1)
+  # SterlingRatio
+  Sterling.calc <- SterlingRatio(returns, scale=1)
   pMetric <- cbind(pMetric, TransformMetric(Sterling.calc, name="SterlingRatio"))
+  pMetric[,1] <- 
+  return(pMetric)
+} 
+DrawdownTable <- function(returns, plot=FALSE) {
+  # подготовка данных
+  print (paste("Calculating Drawdown Metric:", "Drawdown Data Set"))
+  drawdowns <- table.Drawdowns(returns[,1])
+  for (i in seq(1:nrow(drawdowns))) {
+    drawdowns$IntDays[i] <- trunc(as.numeric(drawdowns$To[i] - drawdowns$From[i]))
+  }
+  # max просадка
+  print (paste("Calculating Performance Metric:", "MaxDrawdown"))
+  MaxDrawdown.calc <- drawdowns$Depth[1]
+  # средняя просадка
+  print (paste("Calculating Performance Metric:", "MeanDrawdown"))
+  MeanDrawdown.calc <- trunc(mean(drawdowns$Depth))
+  pMetric <- cbind(MaxDrawdown.calc, MeanDrawdown.calc)
+  # max длина просадки в днях
+  print (paste("Calculating Performance Metric:", "MaxDrawdownDays"))
+  MaxDrawdownDays.calc <- drawdowns$IntDays[which.max(drawdowns$IntDays)]
+  pMetric <- cbind(pMetric, MaxDrawdownDays.calc)
+  # среднее число дней в просадке
+  print (paste("Calculating Performance Metric:", "MeanDrawdownDays"))
+  MeanDrawdown.calc <- trunc(mean(drawdowns$IntDays))
+  pMetric <- cbind(pMetric, MeanDrawdownDays.calc)
+  # текущее число дней в просадке
+  print (paste("Calculating Performance Metric:", "NowDrawdownDays"))
+  NowDrawdownDays.calc <- drawdowns$IntDays[which.max(drawdowns$To)]
+  pMetric <- cbind(pMetric, NowDrawdownDays.calc)
+  # текущая просадка 
+  print (paste("Calculating Performance Metric:", "NowDrawdown"))
+  NowDrawdown.calc <- DrawdownPeak(returns)
+  pMetric <- cbind(pMetric, NowDrawdown.calc)
+  # графики
+  if (plot==TRUE) {
+    drawdowns.dates <- cbind(format(drawdowns$From),format(drawdowns$To))
+    drawdowns.dates[is.na(drawdowns.dates)] <- format(index(returns)[NROW(returns)])
+    drawdowns.dates <- lapply(seq_len(nrow(drawdowns.dates)), function(i) drawdowns.dates[i,])  
+  }
+ return(pMetric)
+}
+
   # просадки
   # максимальная просадка
   maxDrawdown.calc <- maxDrawdown
