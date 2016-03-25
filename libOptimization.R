@@ -30,13 +30,24 @@ TransformMetric <- function(metric, name){
   pMetric[,1] <- 
   return(pMetric)
 } 
+DrawdownDataSet <- function(returns, days=TRUE) {
+  # функция возращает таблицу просадок + кол-во дней в просадке 
+  # на вход - SR
+  require(PerformanceAnalytics)
+  drawdowns <- table.Drawdowns(returns[,1])
+  if (days==TRUE) {
+    for (i in seq(1:nrow(drawdowns))) {
+      drawdowns$IntDays[i] <- trunc(as.numeric(drawdowns$To[i] - drawdowns$From[i]))
+    }  
+  }
+  return(drawdowns)
+}
 DrawdownTable <- function(returns, plot=FALSE) {
+  # вычисляет параметры по просадкам
+  require(PerformanceAnalytics)
   # подготовка данных
   print (paste("Calculating Drawdown Metric:", "Drawdown Data Set"))
-  drawdowns <- table.Drawdowns(returns[,1])
-  for (i in seq(1:nrow(drawdowns))) {
-    drawdowns$IntDays[i] <- trunc(as.numeric(drawdowns$To[i] - drawdowns$From[i]))
-  }
+  drawdowns <- DrawdownDataSet(returns)
   # max просадка
   print (paste("Calculating Performance Metric:", "MaxDrawdown"))
   MaxDrawdown.calc <- drawdowns$Depth[1]
@@ -60,15 +71,68 @@ DrawdownTable <- function(returns, plot=FALSE) {
   print (paste("Calculating Performance Metric:", "NowDrawdown"))
   NowDrawdown.calc <- DrawdownPeak(returns)
   pMetric <- cbind(pMetric, NowDrawdown.calc)
-  # графики
-  if (plot==TRUE) {
-    drawdowns.dates <- cbind(format(drawdowns$From),format(drawdowns$To))
-    drawdowns.dates[is.na(drawdowns.dates)] <- format(index(returns)[NROW(returns)])
-    drawdowns.dates <- lapply(seq_len(nrow(drawdowns.dates)), function(i) drawdowns.dates[i,])  
-  }
- return(pMetric)
+  return(pMetric)
 }
+BigPlot <- function(returns, MarginPlot=FALSE, ReturnsPlot=FALSE, DrawdownShadowPlot=FALSE, DrawdownPlot=FALSE, CandlePlot=FALSE) {
+  require(PerformanceAnalytics)
+  require(plotly)
+  print (paste("Calculating Drawdown Metric:", "Drawdown Data Set"))
+  n <- 0
+  mPlot <- NA
+  rPlot <- NA
+  dsPlot <- NA
+  dPlot <- NA
+  cPlot <- NA
+  mPlot.par <- NA
+  rPlot.par <- NA
+  dsPlot.par <- NA
+  dPlot.par <- NA
+  cPlot.par <- NA
+  if (MarginPlot==TRUE) {
+    n <- n + 1
+    if (drawdownShadow.plot==TRUE) {
+      drawdowns <- DrawdownDataSet(returns, days=FALSE)
+      drawdowns.dates <- cbind(format(drawdowns$From),format(drawdowns$To))
+      drawdowns.dates[is.na(drawdowns.dates)] <- format(index(returns)[NROW(returns)])
+      drawdowns.dates <- lapply(seq_len(nrow(drawdowns.dates)), function(i) drawdowns.dates[i,])  
+      mPlot.par <- par(mar=c(1,4,4,2))
+      mPlot <- chart.CumReturns(  returns, main = "PerformanceCharts", colorset=c(2,3,4), 
+        period.areas = drawdowns.dates, period.color = rgb[1],
+        legend.loc = "topleft", geometric=TRUE, ylab="Cumulative Simple Returns"
+        )
+    } else {
+      mPlot.par <- par(mar=c(1,4,4,2))
+      mPlot <- chart.CumReturns(returns, main = "PerformanceCharts", colorset=c(2,3,4), 
+        legend.loc = "topleft", geometric=TRUE, ylab="Cumulative Simple Returns"
+        )
+    }
+  }
+  if (DrawdownPlot==TRUE) {
+    n <- n+1
+    dPlot.par <- par(mar=c(5,4,0,2))
+    dPlot <- chart.Drawdown(returns, main = "", colorset=c(2,3,4), legend.loc = "topleft", geometric=TRUE, ylab = "Drawdowns")     
+  }  
+  if (ReturnsPlot==TRUE) {
+    n <- n + 1
+    rPlot <- par(mar=c(1,4,0,2))
+    rPlot <- chart.BarVaR(returns, main = "", ylab = paste(date.label,"Returns"))
+  }
+  if (CandlePlot==TRUE) {
+    if (is.na(drawdowns)==FALSE) {
+      
+    } else {
+        drawdowns <- DrawdownDataSet(returns, days=FALSE)
 
+      }
+    }
+  }
+  
+  
+ remove(drawdowns)
+      remove(drawdowns.dates)  
+  
+  
+}
   # просадки
   # максимальная просадка
   maxDrawdown.calc <- maxDrawdown
