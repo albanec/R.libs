@@ -75,7 +75,7 @@ calc.profit <- function(data, s0=0, reinvest=TRUE) {
 	return (profit)
 }
 
-strategy.psar.2sma <- function (data, slow.sma, fast.sma, accel.start=0.02, accel.max=0.2, state=TRUE) {
+Strategy_PSARand2SMA <- function (data, slow.sma, fast.sma, accel.start=0.02, accel.max=0.2, state=TRUE) {
 	require(rusquant) 
 	# описание psar.2sma стратегии 
 	data$sma <- SMA(Cl(data), slow.sma)
@@ -99,3 +99,4 @@ strategy.psar.2sma <- function (data, slow.sma, fast.sma, accel.start=0.02, acce
 	data <- na.omit(data)
 	return(data)
 }		
+#

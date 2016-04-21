@@ -1,4 +1,24 @@
-rep.row<-function(x,n){
+#
+GEN_SigToState <- function(x) {
+	# ----------
+	# Общее описание:
+	# 	функция для перехода к состояниям (фильтрация сигналов)
+	# Входные данные:
+	# 	x - ряд сигналов стратегии
+	# Выходные данные:
+	#	ряд сделок (отфильтрованный ряд сигналов)
+	# ----------
+	#
+	x$a <- na.locf( x )
+	x$a <- ifelse( is.na(x$a) | is.nan(x$a) | is.infinite(x$a), 0, x$a )
+	ind <- which( x$a != lag(x$a) )
+	x$y <- rep( NA, length(x$a) )
+	x$y[ind] = x$a[ind]
+	x$y[1] <- x$a[1]
+	return(x$y)
+}
+#
+GEN_RepeatRow <- function(x,n){
 	# ----------
 	# Общее описание:
 	# 	функция создает матрицу из n строк вектора x
@@ -13,7 +33,7 @@ rep.row<-function(x,n){
  	return(m)
 }
 #
-rep.col<-function(x,n){
+GEN_RepeatCol<-function(x,n){
 	# ----------
 	# Общее описание:
 	# 	функция создает матрицу из n столбцов вектора x
@@ -28,7 +48,40 @@ rep.col<-function(x,n){
 	return(m)
 }
 #
-GetData <- function (ticker, from.date, to.date = Sys.Date(), period = "15min") {
+GEN_CrossForVector <- function(x1,x2) {
+	# ----------
+	# Общее описание:
+	# 	функция вычисляет пересечения графиков векторов
+	# Входные данные:
+	# 	x1 - вектор1
+	#	x2 - вектор2
+	# Выходные данные:
+	#	вектор пересечений
+	# ----------
+	#
+	x <- diff(x1>x2)
+	x[1] <- 0
+	x[x<0] <- 0
+	return(as.logical(c(0,x)))
+}
+GEN_CrossForXTS <- function(x1,x2) {
+	# ----------
+	# Общее описание:
+	# 	функция вычисляет пересечения графиков рядов
+	# Входные данные:
+	# 	x1 - xts1
+	#	x2 - xts2
+	# Выходные данные:
+	#	ряд пересечений
+	# ----------
+	# 
+	x <- diff(x1>x2)
+	x[1] <- 0
+	x[x<0] <- 0
+	return(sign(x))
+}
+#
+GEN_GetData <- function (ticker, from.date, to.date = Sys.Date(), period = "15min") {
 	# ----------
 	# Общее описание:
 	# 	функция загрузки тикера с Финам + переименовывает столбцы
@@ -51,7 +104,7 @@ GetData <- function (ticker, from.date, to.date = Sys.Date(), period = "15min") 
 	return(data)
 }
 #
-SaveXTStoCSV <- function (data, name, period = FALSE, tframe = FALSE) {
+GEN_SaveXTStoCSV <- function (data, name, period = FALSE, tframe = FALSE) {
 	# ----------
 	# Общее описание:
 	# 	функция записи XTS рядов в .csv файл 	
@@ -59,7 +112,7 @@ SaveXTStoCSV <- function (data, name, period = FALSE, tframe = FALSE) {
 	# 	data - нужный xts
 	#	name - название файла
 	#	period - указать в название период свечей
-	#	tframe - указать в названии тайм-фрейм
+	#	tframe - указать в названии номер тайм-фрейма во Framelist'e
 	# Выходные данные:
 	#	сохраненный .csv файл
 	# Зависимости:
@@ -78,14 +131,14 @@ SaveXTStoCSV <- function (data, name, period = FALSE, tframe = FALSE) {
 	cat("Save OK : ", "\t", filename, "\n")
 }
 #
-ReadCSVtoXTS <- function (name, period = FALSE, tframe = FALSE) {
+GEN_ReadCSVtoXTS <- function (name, period = FALSE, tframe = FALSE) {
 	# ----------
 	# Общее описание:
 	# 	функция чтения XTS рядов из .csv файлов
 	# Входные данные:
 	#	name - название файла
 	#	period - указать в название период свечей
-	#	tframe - указать в названии тайм-фрейм
+	#	tframe - указать в названии номер тайм-фрейма во FrameList'е
 	# Выходные данные:
 	#	xts ряд, полученный из файла
 	# Зависимости:
@@ -106,7 +159,7 @@ ReadCSVtoXTS <- function (name, period = FALSE, tframe = FALSE) {
 	return(data)
 }
 #
-GetTickerListData.toCSV <- function (ticker.list = "TickerList.csv", from.date, to.date, period, maxretryattempts = 5, description = FALSE) {
+GEN_GetDataTickerListCSV <- function (ticker.list = "TickerList.csv", from.date, to.date, period, maxretryattempts = 5, description = FALSE) {
 	# ----------
 	# Общее описание:
 	# 	функция загрузки листа котировок за период from/to.date 
@@ -126,7 +179,7 @@ GetTickerListData.toCSV <- function (ticker.list = "TickerList.csv", from.date, 
 	cat("Info: Current work.dir:", getwd())	
 	stocks.list <- read.csv(ticker.list, header = F, stringsAsFactors = F) 
 	stocks.data <- new.env() #Make a new environment for quantmod to store data in
-	data.name.list <- StocksNameList(ticker.list = ticker.list, description)
+	data.name.list <- GEN_StocksNameList(ticker.list = ticker.list, description)
 	nstocks <- nrow(data.name.list) #The number of stocks to download
 	nperiod <- length(period)
 	# если фреймы - вектор, то 
@@ -136,7 +189,7 @@ GetTickerListData.toCSV <- function (ticker.list = "TickerList.csv", from.date, 
 		# цикл загрузки с max количеством попыток
 		for(t in 1:maxretryattempts){
 			cat( "(", i , "/" , nstocks, ")", "Downloading: ", stocks.list[i,1] , "\t Attempt: ", t , "/", maxretryattempts,"\n")
-			data <- GetData(ticker = stocks.list[i,1], from.date = from.date, to.date = to.date, period = period.min)
+			data <- GEN_GetData(ticker = stocks.list[i,1], from.date = from.date, to.date = to.date, period = period.min)
 			if (exists("data")) {
 				cat( "(", i , "/" , nstocks, ")", "Downloading ", stocks.list[i,1] , "\t complete", "\n")
   				break
@@ -148,20 +201,20 @@ GetTickerListData.toCSV <- function (ticker.list = "TickerList.csv", from.date, 
 		data$LR <- Delt(data$Close, type = "log")
 		data$LR[1] <- 0
    		data.name <- as.character(data.name.list[i])
-   		SaveXTStoCSV(data = data, name = data.name, period = period.min)
+   		GEN_SaveXTStoCSV(data = data, name = data.name, period = period.min)
 	}
 }
 #
-StocksNameList <- function (ticker.list, description = FALSE) {
+ GEN_StocksNameList <- function (ticker.list, description = FALSE) {
 	# ----------
 	# Общее описание:
-	# 	вспомогательная для GetTickerListData.toCSV()
+	# 	вспомогательная для GEN_GetTickerListData()
 	# 	функция генерации листа имен тикеров (data.name.list)
 	# Входные данные:
 	#	ticker.list - файл, сожержащий список нужных тикеров
 	# 	description - добавить описание к названию файла 
 	# Выходные данные:
-	#	data.name.list
+	#	data.name.list - frame c данными тикеров
 	# ----------
 	# 
  	stocks.list <- read.csv(ticker.list, header = F, stringsAsFactors = F) 
@@ -184,7 +237,7 @@ StocksNameList <- function (ticker.list, description = FALSE) {
 	return(data.name.list)
 }
 #
-TimeExpand.data <- function(ticker.list, frame.list, period, description = FALSE) {
+GEN_TimeExpandData <- function(ticker.list, frame.list, period, description = FALSE) {
 	# ----------
 	# Общее описание:
 	# 	функция выделения данных по tf и временному интервалу
@@ -200,7 +253,7 @@ TimeExpand.data <- function(ticker.list, frame.list, period, description = FALSE
 	# 
 	cat( "Start DataExpand by FrameList :", "\n")
 	cat( "Generate DataNameList...", "\n")
-	data.name.list <- StocksNameList(ticker.list, description)
+	data.name.list <- GEN_StocksNameList(ticker.list, description)
 	frame.list <- read.csv(frame.list, header = F, stringsAsFactors = F)
 	nstocks <- nrow(data.name.list)
 	nframe <- nrow(frame.list)
@@ -209,7 +262,7 @@ TimeExpand.data <- function(ticker.list, frame.list, period, description = FALSE
 	for (i in 1:nstocks) {
 		data.name <- as.character(data.name.list[i])
 		cat( "Processing StocksData:", "\t", data.name, "\n")
-		data.source <- ReadCSVtoXTS(name = data.name, period = period[1], tframe = FALSE)
+		data.source <- GEN_ReadCSVtoXTS(name = data.name, period = period[1], tframe = FALSE)
 		cat ("Expand...", "\t", data.name, "\n")
 		for (n in 1:nframe) {
 			# цикл time.frame'а
@@ -246,10 +299,14 @@ TimeExpand.data <- function(ticker.list, frame.list, period, description = FALSE
 				data <- data.source[window]
 				ends <- endpoints(data, p1, k)
 				data <- data[ends]
-				SaveXTStoCSV(data = data, name = data.name, period = p, tframe = n)
+				GEN_SaveXTStoCSV(data = data, name = data.name, period = p, tframe = n)
 			}
 		}
 	}
 	cat( "Expand StocksData...", "\t", "complete", "\n")
 }
 #
+
+	# выгрузка данных
+	#filename <- paste("MergedData", ticker.list, sep = ".")
+	#data <- GEN_ReadCSVtoXTS (name = filename, period, tframe)

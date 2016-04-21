@@ -1,4 +1,4 @@
-DataPrepareForPCA <- function (ticker.list, price, description, period, tframe, approx = FALSE) {
+PCA_DataPreparation <- function (ticker.list, price, description, period, tframe, approx = FALSE) {
 	# ----------
 	# Общее описание:
 	# 	функция подготовки данных к PCA
@@ -13,18 +13,18 @@ DataPrepareForPCA <- function (ticker.list, price, description, period, tframe, 
 	#	data - xts ряд объединенных подготовленных значений (по всему портфелю)
 	# ----------
 	# 
-	cat( "Start DataPrepareForPCA...", "\n")
-	data <- MergeForPCA(price  =  price, ticker.list = ticker.list, description = description, period = period, tframe = tframe, approx = approx)
+	cat( "Start PCA_DataPreparation...", "\n")
+	data <- PCA_MergeData(price  =  price, ticker.list = ticker.list, description = description, period = period, tframe = tframe, approx = approx)
 	cat( "Merging Data...", "\t", "done", "\n")
-	#data <- BindToMatrix(data, load.csv = FALSE, save.filename = "Matrix.csv")
+	#data <- PCA_BindToMatrix(data, load.csv = FALSE, save.filename = "Matrix.csv")
 	cat( "Create MatrixForPCA...", "\t", "done", "\n")
 	return(data)
 } 
 #
-MergeForPCA <- function (price = "SR", ticker.list, description = FALSE, period, tframe, approx = FALSE) {
+PCA_MergeData <- function (price = "SR", ticker.list, description = FALSE, period, tframe, approx = FALSE) {
 	# ----------
 	# Общее описание:
-	# 	вспомогательная для DataPrepareForPCA()
+	# 	вспомогательная для PCA_DataPreparation()
 	# 	функция объединения данных в один XTS и устранение NA значений
 		# NA можно убрать простым na.locf и аппроксимацией
 	# Входные данные:
@@ -39,14 +39,14 @@ MergeForPCA <- function (price = "SR", ticker.list, description = FALSE, period,
 	# ----------
 	# 
 	cat( "Generate DataNameList...", "\n")
-	data.name.list <- StocksNameList(ticker.list = ticker.list, description = description) 
+	data.name.list <- GEN_StocksNameList(ticker.list = ticker.list, description = description) 
 	nstocks <- nrow(data.name.list)
 	FirstTime <- TRUE
 	#  чтение и объединение данных
 	for (i in 1:nstocks) {
 		data.name <- as.character(data.name.list[i])
 		cat( "Processing StocksData:", "\t", data.name, "\n")
-		data <- ReadCSVtoXTS(name = data.name, period = period, tframe = tframe) 
+		data <- GEN_ReadCSVtoXTS(name = data.name, period = period, tframe = tframe) 
 		if (price == "Open") {
 			data <- data$Open
 			col.name <- paste(data.name, "Open")
@@ -88,18 +88,18 @@ MergeForPCA <- function (price = "SR", ticker.list, description = FALSE, period,
 	merged.data <- na.omit(merged.data)
 	cat( "Save Data...", "\n") 
 	filename <- paste("MergedData", ticker.list, price, sep = ".")
-	SaveXTStoCSV(data = merged.data, name = filename, period = period, tframe = tframe)
+	GEN_SaveXTStoCSV(data = merged.data, name = filename, period = period, tframe = tframe)
 	#write.table(merged.data, file = filename, sep = ",")
 	return (merged.data)
 }
 #
-BindToMatrix <- function (data, load.filename = FALSE, save.filename = "Matrix.csv") {
+PCA_BindToMatrix <- function (data, load.filename = FALSE, save.filename = "Matrix.csv") {
 	# ----------
 	# Общее описание:
-	# 	вспомогательная для DataPrepareForPCA()
+	# 	вспомогательная для PCA_DataPreparation()
 	# 	функция преобразования объединенного xts в матрицу
 		# на вход подается merged.data xts либо напрямую, либо через чтение .csv (чтение нужно для 
-		# независимого от DataPrepareForPCA() использования
+		# независимого от PCA_DataPreparation() использования
 	# Входные данные:
 	#	data - подготовленный и объединенный xts (merged.data)
 	# 	load.filename - если данные необходимо считать из .csv, то это путь
@@ -110,7 +110,7 @@ BindToMatrix <- function (data, load.filename = FALSE, save.filename = "Matrix.c
 	# 
 	if (load.filename != FALSE) {
 		cat( "Loading Data for BindToMatrix...", "\n")
-		data <- ReadCSVtoXTS(name = load.filename)
+		data <- GEN_ReadCSVtoXTS(name = load.filename)
 	}
 	#преобразование в матрицу 
 	cat( "Create Matrix...", "\n")
@@ -120,7 +120,7 @@ BindToMatrix <- function (data, load.filename = FALSE, save.filename = "Matrix.c
 	return (data)
 }
 #
-ExpandDataPrepareForPCA.toSCV <- function (ticker.list, frame.list, description, period,  approx, price) {
+PCA_ExpandData <- function (ticker.list, frame.list, description, period,  approx, price) {
 	# ----------
 	# Общее описание:
 	# 	генерирует большое количество данных для PCA (расширенное по периодам/тайм-фреймам)
@@ -142,12 +142,12 @@ ExpandDataPrepareForPCA.toSCV <- function (ticker.list, frame.list, description,
 	nperiod <- length(period)
 	for (i in 1:nperiod) {
 		for (t in 1:nframe) {
-			data <- DataPrepareForPCA (ticker.list = ticker.list, description = description, period = period[i], tframe = tframe[t], approx = approx, price = price)
+			data <- PCA_DataPreparation (ticker.list = ticker.list, description = description, period = period[i], tframe = tframe[t], approx = approx, price = price)
 		}	
 	} 
 }
 #
-PCAcompute <- function(data, period, tframe, price = "SR", KG.test = FALSE, print = TRUE) {
+PCA_ComputePCA <- function(data, period, tframe, price = "SR", KG.test = FALSE, print = TRUE) {
 	# ----------
 	# Общее описание:
 	# 	вычисление PC + тестирует данные
@@ -183,7 +183,7 @@ PCAcompute <- function(data, period, tframe, price = "SR", KG.test = FALSE, prin
 	components <- loadings[, 1:n.PC]
 	# нормализуем компоненты 
 	n <- ncol(data)
-	components <- components / rep.row(colSums(abs(components)), n)
+	components <- components / GEN_RepeatRow(colSums(abs(components)), n)
 	# note that first component is market, and all components are orthogonal i.e. not correlated to market
 	market <- data %*% rep(1/n,n)
 	temp <- cbind(market, data %*% components)
@@ -195,11 +195,13 @@ PCAcompute <- function(data, period, tframe, price = "SR", KG.test = FALSE, prin
 	vol <- round(100*sd(temp,na.rm = T),2)
 	# вывод данных
 	if (print == TRUE) {
+		cat("\n")
 		cat("PC value:", "\t", n.PC, "\n")
-		cat("Components after PCA:")
+		cat("\n")
+		cat("Components after PCA:", "\n")
 		print(components)
 		cat("\n")
-		cat("Correlation Table between PCA:")
+		cat("Correlation Table between PCA:", "\n")
 		print(cor.table)
 		cat("\n")
 		cat("Vol Summary:", vol, "\n")
@@ -227,26 +229,125 @@ PCAcompute <- function(data, period, tframe, price = "SR", KG.test = FALSE, prin
 	#barplot(height = pca.data$sdev[1:10]/pca.data$sdev[1])
 	return(equity)
 }
-PCA.DFtest <- function (data) {
+#
+PCA_DFtestPCA <- function (data) {
 	# ----------
 	# Общее описание:
 	# 	проверка на стационарность получившихся PC (по их equity)
 	# Входные данные:
 	#	data - xts, equity главных компонент 
 	# Выходные данные:
-	#	equity[, statPC] - ряд equity для наиболее стационарной PCA 
+	#	statPC: номер наиболее стационарной PC 
 	# ----------
 	#
 	# ДФ-тест на стационарность
+	n.PC <- ncol(data)
 	df.value <- rep(NA, n.PC)
 	for (i in 1:n.PC) {
-		df.value[i] <- adf.test(as.numeric(equity[, i]))$p.value			
+		df.value[i] <- adf.test(as.numeric(data[, i]))$p.value			
 	}
 	statPC <- which.min(df.value)
 	cat("Best DF-test result...", "\t", df.value[statPC], "\t", "PC:", statPC, "\n")
-	return (equity[, statPC]) 
+	return (statPC) 
 }
+#
+PCA_ComputeData <- function (ticker.list, period, tframe) {
+	# ----------
+	# Общее описание:
+	# 	рассчитывает веса портфеля (полученные из наиболее нужной PC) на периоде времени 
+	# Входные данные:
+	# 	ticker.list: лист котировок портфеля
+	# 	period: период свечек
+	#	tframe: номер периода во FrameList 
+	# Выходные данные:
+	#	data: ряд значений котировок ног портфеля и самого портфеля 
+	# ----------
+	#
+	components.filename <- paste("Components", ticker.list, period, tframe, "csv", sep = ".")
+	read.table(components, file = components.filename, sep = ",")
+	
+}
+#
+PCA_ScoresData <- function (data, vol = TRUE, sma.period) {
+	# ----------
+	# Общее описание:
+	#  вычисление z-scores для PC (с нормировкой по vol( за sma.period) и без)
+	# Входные данные:
+	#	data: xts, equity нужной главной компоненты
+	#	vol: учёт vol (!отключать только в тестовых целях!) 
+	#	sma.period: период SMA, используемой для усреднения  
+	# Выходные данные:
+	#	data - к ряду equity добавлены значения SMA, vol и z-scores для нужной (стационарной) PCA 
+	# Зависимости:
+		require(quantmod) 
+	# ----------
+	#
+	names(data) <- c("equity")
+	data$SMA <- SMA(data$equity, sma.period)
+	if (vol == TRUE) {
+		data$vol <- runSD(x, n = sma.period)
+		data$z.score <- (data$equity - data$SMA) / data$vol 
+	} else {
+		data$z.score <- (data$equity - data$SMA)
+	}
+	data <- na.omit(data)
+	return(data)
+}
+#
+PCA_StrategySimpleMeanReversion <- function (data, sma.period, 
+											 low.mark, hi.mark, 
+											 low.close.mark, hi.close.mark, 
+											 price = "LR", state=TRUE) {
+	# ----------
+	# Общее описание:
+	#  вычисление позиций по стратегии простого возврата к стреднему
+	# Входные данные:
+	#	data - equity нужной главной компоненты с zscores
+	# Выходные данные:
+	#	data - к исходному ряду добавлен ряд сделок
+	# Зависимости:
+		require(quantmod) 
+	# ----------
+	#
+	low.mark <- 0.25 
+	hi.mark <- 0.75
+	low.close.mark <- 0.0
+	hi.close.mark <- 0.0
+	# точки пересечения PC с границами зоны открытия позиций 
+		# пересечение верхней зоны открытия (снизу вверх)
+	data$sig.buy <- GEN_CrossForXTS(data$z.score, hi.mark) 
+		# пересечение нижней зоны открытия (сверху вниз)
+	data$sig.sell <- GEN_CrossForXTS(low.mark, data$z.score)
+	# точки пересечения PC с границами зоны закрытия позиций 
+		# пересечение верхней зоны закрытия (сверху вниз)
+	data$sig.close.buy <- GEN_CrossForXTS(hi.close.mark, data$z.score) 
+		# пересечение нижней зоны закрытия (сверху вниз)
+	data$sig.close.sell <- GEN_CrossForXTS(data$z.score, low.close.mark)
+	# точки в позиции buy
+	data$pos.buy <- data$sig.buy - data$sig.close.buy
+	# точки в позиции sell
+	data$pos.sell <- data$sigUp - data4$sigDn
+	
+	data$pos <- lag(data$pos)
+	if (state==TRUE) {
+		data$state <- exrem(data$pos)
+	} else {
+		colnames(data)[colnames(data)=="pos"] <- "state"
+	}
+
+
+
+
+	# убираем лишнее и добавляем очишенные данные в ряд
+	data.temp$sig.clean <- exrem(data.temp$sig)
+	# убираем лишние столбцы
+	data.temp$sig <- NULL
+	data.temp <- na.omit (data.temp)
+	data$sig <- NULL
+}
+	
+	
 
 	# выгрузка данных
 	#filename <- paste("MergedData", ticker.list, sep = ".")
-	#data <- ReadCSVtoXTS (name = filename, period, tframe)
+	#data <- GEN_ReadCSVtoXTS(name = filename, period, tframe)
