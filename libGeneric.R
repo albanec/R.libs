@@ -307,6 +307,7 @@ GEN_TimeExpandData <- function(ticker.list, frame.list, period, description = FA
 }
 #
 
+	
 	# выгрузка данных
 	#filename <- paste("MergedData", ticker.list, sep = ".")
 	#data <- GEN_ReadCSVtoXTS (name = filename, period, tframe)

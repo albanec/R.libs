@@ -13,7 +13,7 @@ PCA_DataPreparation <- function (ticker.list, price, description, period, tframe
 	#	data - xts ряд объединенных подготовленных значений (по всему портфелю)
 	# ----------
 	# 
-	cat( "Start PCA_DataPreparation...", "\n")
+	cat( "Start DataPreparation...", "\n")
 	data <- PCA_MergeData(price  =  price, ticker.list = ticker.list, description = description, period = period, tframe = tframe, approx = approx)
 	cat( "Merging Data...", "\t", "done", "\n")
 	#data <- PCA_BindToMatrix(data, load.csv = FALSE, save.filename = "Matrix.csv")
@@ -89,7 +89,6 @@ PCA_MergeData <- function (price = "SR", ticker.list, description = FALSE, perio
 	cat( "Save Data...", "\n") 
 	filename <- paste("MergedData", ticker.list, price, sep = ".")
 	GEN_SaveXTStoCSV(data = merged.data, name = filename, period = period, tframe = tframe)
-	#write.table(merged.data, file = filename, sep = ",")
 	return (merged.data)
 }
 #
@@ -250,34 +249,112 @@ PCA_DFtestPCA <- function (data) {
 	cat("Best DF-test result...", "\t", df.value[statPC], "\t", "PC:", statPC, "\n")
 	return (statPC) 
 }
-#
-PCA_ComputeData <- function (ticker.list, period, tframe) {
+GEN_MergeBasketData <- function (ticker.list, period, tframe, description = FALSE) {
 	# ----------
 	# Общее описание:
-	# 	рассчитывает веса портфеля (полученные из наиболее нужной PC) на периоде времени 
+	# 	объединяет котировки по портфелю
 	# Входные данные:
 	# 	ticker.list: лист котировок портфеля
 	# 	period: период свечек
 	#	tframe: номер периода во FrameList 
 	# Выходные данные:
-	#	data: ряд значений котировок ног портфеля и самого портфеля 
+	#	merged.data: ряд котировок портфеля
 	# ----------
 	#
-	components.filename <- paste("Components", ticker.list, period, tframe, "csv", sep = ".")
-	read.table(components, file = components.filename, sep = ",")
-	
+	cat( "Generate DataNameList...", "\n")
+	data.name.list <- GEN_StocksNameList(ticker.list = ticker.list, description = description) 
+	nstocks <- nrow(data.name.list)
+	FirstTime <- TRUE
+	for (i in 1:nstocks) {
+		data.name <- as.character(data.name.list[i])
+		cat( "Processing StocksData:", "\t", data.name, "\n")
+		data <- GEN_ReadCSVtoXTS(name = data.name, period = period, tframe = tframe) 
+		temp.data <- data$Open
+		temp.data$Close <- data$Close
+		temp.data$Volume <- data$Volume
+		if (ret == "SR") {
+			temp.data$SR <- data$SR	
+		}
+		if (ret == "LR") {
+			temp.data$SR <- data$LR
+		}
+		data <- temp.data
+		op.name <- paste(data.name, "Open", sep=".")
+		cl.name <- paste(data.name, "Close", sep=".")
+		vo.name <- paste(data.name, "Volume", sep=".")
+		ret.name <- paste(data.name, ret, sep=".")
+		names(data) <- c(op.name, cl.name, vo.name, ret.name)
+		if (FirstTime == TRUE) {
+			FirstTime <- FALSE
+			merged.data <- data
+		} else {
+			merged.data <- merge(merged.data, data)
+		}
+	}
+	return(merged.data)
 }
 #
-PCA_ScoresData <- function (data, vol = TRUE, sma.period) {
+PCA_BasketSpread <- function (data, ticker.list, period, pca.tframe, price, n.PC) {
 	# ----------
 	# Общее описание:
-	#  вычисление z-scores для PC (с нормировкой по vol( за sma.period) и без)
+	# 	расчет спреда по корзине 
 	# Входные данные:
-	#	data: xts, equity нужной главной компоненты
+	# 	data: ряд объединенных котировок по портфелю
+	# 	n.PC: номер г. компоненты
+	#		...
+	#	pca.tframe: фрейс на котором вычислялись компоненты !!! 
+	# Выходные данные:
+	#	data: ряд котировок портфеля + спред
+	# ----------
+	#
+    cat( "Generate DataNameList...", "\n")
+    data.name.list <- GEN_StocksNameList(ticker.list = ticker.list, description = description) 
+    nstocks <- nrow(data.name.list)
+    cat("Loading components")
+    components.filename <- paste("Components", ticker.list, period, pca.tframe, "csv", sep = ".")
+    components <- read.table(file = components.filename, sep = ",")
+    components <- as.matrix(components[n.PC])
+    FirstTime <- TRUE
+    for (i in 1:nstocks) {
+        data.name <- data.name.list[i]
+        col.name <- paste(data.name, price, sep=".")
+        temp.data <- data[, col.name]
+        if (FirstTime == TRUE) {
+            FirstTime <- FALSE
+            ret.data <- temp.data
+        } else {
+            ret.data <- merge(ret.data, temp.data)
+        }
+    }
+    if (price == "Close") {
+        m <-  -ret.data %*% components
+        data.spread <- apply(m, 2,  cumsum)
+        data.spread <- as.xts(data.spread, index(data.spread))	
+    }
+    if (price == "SR") {
+        m <- 1 + (-ret.data %*% components)
+        data.spread <- apply(m, 2, cumprod)
+        data.spread <- as.xts(data.spread, index(data.spread))
+    } 
+    if (price == "LR") {
+        m <- -ret.data %*% components
+        data.spread <- apply(m, 2,  cumsum)
+        data.spread <- as.xts(data.spread, index(ret.data))	
+    }
+    data$spread <- data.spread 
+    return (data)
+}
+#
+PCA_ZScoresData <- function (data, vol = TRUE, sma.period) {
+	# ----------
+	# Общее описание:
+	#  вычисление z-scores для спреда (с нормировкой по vol( за sma.period) и без)
+	# Входные данные:
+	#	data: xts, equity спреда
 	#	vol: учёт vol (!отключать только в тестовых целях!) 
 	#	sma.period: период SMA, используемой для усреднения  
 	# Выходные данные:
-	#	data - к ряду equity добавлены значения SMA, vol и z-scores для нужной (стационарной) PCA 
+	#	data - к ряду equity добавлены значения SMA, vol и z-scores для спреда 
 	# Зависимости:
 		require(quantmod) 
 	# ----------
@@ -302,7 +379,7 @@ PCA_StrategySimpleMeanReversion <- function (data, sma.period,
 	# Общее описание:
 	#  вычисление позиций по стратегии простого возврата к стреднему
 	# Входные данные:
-	#	data - equity нужной главной компоненты с zscores
+	#	data - спред с zscores
 	# Выходные данные:
 	#	data - к исходному ряду добавлен ряд сделок
 	# Зависимости:
@@ -315,6 +392,7 @@ PCA_StrategySimpleMeanReversion <- function (data, sma.period,
 	hi.close.mark <- 0.0
 	# точки пересечения PC с границами зоны открытия позиций 
 		# пересечение верхней зоны открытия (снизу вверх)
+	if (data$z.score > hi.mark)
 	data$sig.buy <- GEN_CrossForXTS(data$z.score, hi.mark) 
 		# пересечение нижней зоны открытия (сверху вниз)
 	data$sig.sell <- GEN_CrossForXTS(low.mark, data$z.score)
