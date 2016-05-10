@@ -1,26 +1,22 @@
- 
-EVA_TransformMetric <- function (metric.data, metric.name) {
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Расчет временных метрик:
+EVA_DateTable <- function (states.data) {
   # ----------
   # Общее описание:
-  #   функция трансформации данных метрик к одному виду (нужна для RatioTable)
+  #   функция свода временных параметров работы стратегии
   # Входные данные:
-  #   metric.data: данные метрики
-  #   metric.name: название метрики
+  #   states.data: ряд сделок
   # Выходные данные:
-  #   metric.data: транформированная в столбец метрика
+  #   metric.table: таблица метрик
+  # Зависимости:
+  require(PerformanceAnalytics)
   # ----------
-  #
-  cat("Calculating Performance Metric:", metric.name, "\n")
-  metric.data <- as.matrix(metric.data)
-  # трансформация в нужный вид:
-  if (nrow(metric.data) == 1) {
-    metric.data <- t(metric.data)
-  }
-  colnames(metric.data) <- metric.name
-  rownames(metric.data) <- ""
-  return (metric.data)
+  
 }
-#
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Расчет коэффициентов продуктивности стратегий:
+# 
 EVA_RatioTable <- function (returns.data) {
   # ----------
   # Общее описание:
@@ -50,11 +46,34 @@ EVA_RatioTable <- function (returns.data) {
   #pMetric[,1] <- 
   return(metric.table)
 }
-# 
+# Вспомогательные фунции:
+EVA_TransformMetric <- function (metric.data, metric.name) {
+  # ----------
+  # Общее описание:
+  #   функция трансформации данных метрик к одному виду (нужна для RatioTable)
+  # Входные данные:
+  #   metric.data: данные метрики
+  #   metric.name: название метрики
+  # Выходные данные:
+  #   metric.data: транформированная в столбец метрика
+  # ----------
+  #
+  cat("Calculating Performance Metric:", metric.name, "\n")
+  metric.data <- as.matrix(metric.data)
+  # трансформация в нужный вид:
+  if (nrow(metric.data) == 1) {
+    metric.data <- t(metric.data)
+  }
+  colnames(metric.data) <- metric.name
+  rownames(metric.data) <- ""
+  return (metric.data)
+}
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Расчет Drawdown метрик:
 EVA_DrawdownDataSet <- function (returns.data, days = TRUE) {
   # ----------
   # Общее описание:
-  #   функция возращает таблицу просадок + кол-во дней в просадке 
+  # функция возращает таблицу просадок + кол-во дней в просадке (формирует ряд для анализа)
   # Входные данные:
   #   returns.data: ряд доходностей
   # Выходные данные:
@@ -75,7 +94,7 @@ EVA_DrawdownDataSet <- function (returns.data, days = TRUE) {
 EVA_DrawdownTable <- function (returns.data, plot = FALSE, period = "15") {
   # ----------
   # Общее описание:
-  # вычисляет параметры по просадкам
+  # вычисляет параметры по просадкам (выводит итоговые данные)
   # Входные данные:
   #   returns.data: ряд доходностей
   #   plot: TRUE/FALSE график
@@ -104,21 +123,35 @@ EVA_DrawdownTable <- function (returns.data, plot = FALSE, period = "15") {
   # текущее число дней в просадке
   cat("Calculating Performance Metric:", "NowDrawdownDays", "\n", sep = "  ")
   now.drawdown.days <- as.numeric(-floor(-(drawdowns$Length[which(is.na(drawdowns$To))] * as.numeric(period) / 60 / 24)))
+  # текущее число свечей в просадке
+  cat("Calculating Performance Metric:", "NowDrawdownPeriods", "\n", sep = "  ")
+  now.drawdown.periods <- as.numeric(-floor(-(drawdowns$Length[which(is.na(drawdowns$To))] )))
   # текущая просадка 
   cat("Calculating Performance Metric:", "NowDrawdown", "\n", sep = "  ")
   now.drawdown <- as.numeric(DrawdownPeak(last(returns.data)))
   # формирование таблицы
   drawdown.table <- cbind(max.drawdown, mean.drawdown, max.drawdown.days, 
-                          mean.drawdown.days, now.drawdown.days, now.drawdown)
+                          mean.drawdown.days, now.drawdown.days, now.drawdown.periods, now.drawdown)
   drawdown.table <- data.frame(drawdown.table)
   colnames(drawdown.table) <- c("MaxDrawdown", "MeanDrawdown" , "MaxDrawdownDays", 
-                                "MeanDrawdownDays", "NowDrawdownDays", "NowDrawdown")  
+                                "MeanDrawdownDays", "NowDrawdownDays", "NowDrawdownPeriods", "NowDrawdown")  
   return(drawdown.table)
 }
 #
-BigPlot <- function(returns, MarginPlot = FALSE, ReturnsPlot = FALSE, DrawdownShadowPlot = FALSE, DrawdownPlot = FALSE, CandlePlot = FALSE, period = "15 min") {
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Вывод графиков:
+EVA_BigPlot <- function(returns, MarginPlot = FALSE, ReturnsPlot = FALSE, DrawdownShadowPlot = FALSE, DrawdownPlot = FALSE, CandlePlot = FALSE, period = "15 min") {
+  # ----------
+  # Общее описание:
+  # 
+  # Входные данные:
+  # 
+  # Выходные данные:
+  # 
+  # Зависимости:
   require(PerformanceAnalytics)
   require(plotly)
+  # ----------
   print (paste("Calculating Metric:", "Drawdown Data Set"))
   n <- 0
   mPlot <- NA
