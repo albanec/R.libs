@@ -393,14 +393,14 @@ PCA_StrategySimpleMeanReversion <- function (data, sma.period,
 	# точки пересечения PC с границами зоны открытия позиций 
 		# пересечение верхней зоны открытия (снизу вверх)
 	if (data$z.score > hi.mark)
-	data$sig.buy <- GEN_CrossForXTS(data$z.score, hi.mark) 
+	data$sig.buy <- STR_CrossForXTS(data$z.score, hi.mark) 
 		# пересечение нижней зоны открытия (сверху вниз)
-	data$sig.sell <- GEN_CrossForXTS(low.mark, data$z.score)
+	data$sig.sell <- STR_CrossForXTS(low.mark, data$z.score)
 	# точки пересечения PC с границами зоны закрытия позиций 
 		# пересечение верхней зоны закрытия (сверху вниз)
-	data$sig.close.buy <- GEN_CrossForXTS(hi.close.mark, data$z.score) 
+	data$sig.close.buy <- STR_CrossForXTS(hi.close.mark, data$z.score) 
 		# пересечение нижней зоны закрытия (сверху вниз)
-	data$sig.close.sell <- GEN_CrossForXTS(data$z.score, low.close.mark)
+	data$sig.close.sell <- STR_CrossForXTS(data$z.score, low.close.mark)
 	# точки в позиции buy
 	data$pos.buy <- data$sig.buy - data$sig.close.buy
 	# точки в позиции sell
