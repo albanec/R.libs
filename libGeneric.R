@@ -29,6 +29,28 @@ GEN_RepeatCol<-function(x,n){
 	return(m)
 }
 #
+GEN_FindMaxDistancePoint <- function (y, x=1:len(y)) {
+	# ----------
+	# Общее описание:
+	# Входные данные:
+	# Выходные данные:	
+	# ----------
+	# 
+	all.coord <- rbind(vec(y), vec(x))
+	first.point <- all.coord[, 1]
+	line.vec <- all.coord[, len(y)] - first.point
+	line.vec.n <- line.vec / sqrt(sum(line.vec^2))
+	#	
+	vec.from.first <- all.coord - first.point
+	scalar.product <- line.vec.n %*% vec.from.first
+	#	
+	vec.from.first.parallel <- t(scalar.product) %*% line.vec.n
+	vec.to.line <- t(vec.from.first) - vec.from.first.parallel
+	dist.to.line <- sqrt(rowSums(vec.to.line^2, 2))
+	dist <- which.max(dist.to.line)
+	return(dist)
+}	
+#
 GEN_GetData <- function (ticker, from.date, to.date = Sys.Date(), period = "15min") {
 	# ----------
 	# Общее описание:
@@ -41,7 +63,7 @@ GEN_GetData <- function (ticker, from.date, to.date = Sys.Date(), period = "15mi
 	# Выходные данные:
 	#	xts массив "data"
 	# Зависимости:
-		require(rusquant) 	
+	require(rusquant) 	
 	# ----------
 	#
 	# загрузка данных
@@ -105,6 +127,21 @@ GEN_ReadCSVtoXTS <- function (name, period = FALSE, tframe = FALSE) {
 	data <- xts(data[,-1], order.by = as.POSIXct(data$Index))
 	cat("Read OK : ", "\t", filename, "\n")
 	return(data)
+}
+#
+GEN_ReadSimpleCSV <- function (file.path, sep = ";") {
+	# ----------
+	# Общее описание:
+	# функция считывания простых .csv
+	# Входные данные:
+	# file.path: путь к файлу
+	# sep: тип разделителя
+	# Выходные данные:
+	# file: считанный файл
+	# ----------
+	#
+	file <- read.table(file=file.path, header=F, sep = ";", as.is=T) 
+	return (file)
 }
 #
 GEN_GetDataTickerListCSV <- function (ticker.list = "TickerList.csv", from.date, to.date, period, maxretryattempts = 5, description = FALSE) {
@@ -264,8 +301,8 @@ GEN_TimeExpandData <- function(ticker.list, frame.list, period, description = FA
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Фукции для парсинга готовых данных бэктеста (из TSlab & WELSlab) и подготовки для анализа:
 #
-GEN_ParseLabsCSV <- function (file.path = file.path, var.list 'var1, var2, var3', profit=profit, 
-							draw = draw, sort = FALSE, var.names = TRUE) {
+GEN_ParseLabsCSV <- function (file.path = file.path, var.list, profit=profit, 
+							draw = draw, sort = FALSE, var.names = TRUE, sep = ";") {
     # ----------
     # Общее описание:
     #   функция для парсинга .csv файлов (заточена под выгрузку данных из WELSlab & TSlab)
@@ -281,14 +318,7 @@ GEN_ParseLabsCSV <- function (file.path = file.path, var.list 'var1, var2, var3'
     # ----------
     #
     # считывание файла 
-    file <- read.table(file=file.path, header=F, sep = ";", as.is=T)   
-    # чистим от лишнего 
-    file <- file[-1,]
-    file <- file[, colSums(is.na(file)) == 0]
-    # temp дата-фрейм 
-    temp.t <- nrow(file) 
-    temp.frame <- rep(NA, temp.t)
-    temp.frame <- data.frame(temp.frame)
+    file <- GEN_ReadSimpleCSV(file.path, sep)   
     # выделяем нужные параметры
     # profit/draw
     profit.name <- file[[1, profit]] 
@@ -301,9 +331,15 @@ GEN_ParseLabsCSV <- function (file.path = file.path, var.list 'var1, var2, var3'
         "Выбраны переменные & тепловой параметр:",
         "" )
     var.name.list <- c()
+    name.raw <- file[1, ]
+    file <- file[-1, ]
+    file <- file[, colSums(is.na(file)) == 0]
+    # temp дата-фрейм 
+    temp.frame <- rep(NA, nrow(file))
+    temp.frame <- data.frame(temp.frame)
     for (i in 1:n.vars) {
-        temp.var.name <- file[[1, var.list[i]]]
-        cat("var", i, ": ", ".......... ", , "\n")
+        temp.var.name <- name.raw[[var.list[i]]]
+        cat("var", i, ": ", ".......... ", temp.var.name, "\n")
 		var.name.list <- c(var.name.list, temp.var.name)
      	temp.frame[, paste("var", i, sep = "")] <- as.numeric(gsub("\\,", ".", file[[var.list[i]]])) 
         temp.frame[, paste("var", i, sep = "")] <- as.numeric(gsub("\\s", "", temp.frame[, paste("var", i, sep = "")]) )
@@ -315,6 +351,9 @@ GEN_ParseLabsCSV <- function (file.path = file.path, var.list 'var1, var2, var3'
     temp.frame$draw <- as.numeric( gsub("\\,", ".", file[[draw]]) )
     temp.frame$draw <- as.numeric( gsub("\\s", "", temp.frame$draw) )
     temp.frame$temp.frame <- NULL
+    # чистим от лишнего 
+    remove(file)
+    
     # сортировка по профиту
     if (sort == TRUE) {
         temp.frame <- temp.frame[order(-temp.frame$profit),]
@@ -455,9 +494,9 @@ GEN_QuantLabsFile <- function (data, var, q.hi = 0, q.low = 0, two = FALSE, low 
 }
 #
 GEN_AllPreparationLabsFile <- function (file.path, var.list, profit=profit, draw=draw, m, 
-								  slab = TRUE, q.hi, one.scale=TRUE) {
-    data <- GEN_ParseLabsCSV(file.path = file.path, var1, var2, var3, profit=profit, 
-    						 draw=draw, sort=FALSE, var.names=FALSE)
+								  slab = TRUE, q.hi, one.scale=TRUE, sep = ";", tslab = TRUE) {
+    data <- GEN_ParseLabsCSV(file.path = file.path, var.list, profit=profit, 
+    						 draw=draw, sort=FALSE, var.names=FALSE, sep)
     if (tslab == FALSE) {
         data$var0 <- GEN_BotNumSetLabsFile(data, bot.num.table)    
         data <- GEN_DuplicatedRowFilterLabsFile(data)
@@ -469,8 +508,8 @@ GEN_AllPreparationLabsFile <- function (file.path, var.list, profit=profit, draw
     #
     data <- GEN_QuantLabsFile(data, var=6, q.hi, hi=TRUE, abs=FALSE)
     if (one.scale == TRUE) {
-        data[nrow(data)+1, ] <- c(0, 0, 0, 0, 0, data$profit.norm[[which.max(data$profit.norm)]])
-        data[nrow(data)+1, ] <- c(0, 0, 0, 0, 0, 0)
+        data[nrow(data)+1, ] <- c(rep(0, length(var.list)+2), data$profit.norm[[which.max(data$profit.norm)]])
+        data[nrow(data)+1, ] <- c(rep(0, length(var.list)+3))
     }
     return (data)
 }
