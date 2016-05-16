@@ -1,5 +1,5 @@
 #
-GEN_RepeatRow <- function(x,n){
+GEN_RepeatRow <- function(x,n) {
 	# ----------
 	# Общее описание:
 	# 	функция создает матрицу из n строк вектора x
@@ -14,7 +14,7 @@ GEN_RepeatRow <- function(x,n){
  	return(m)
 }
 #
-GEN_RepeatCol<-function(x,n){
+GEN_RepeatCol<-function(x,n) {
 	# ----------
 	# Общее описание:
 	# 	функция создает матрицу из n столбцов вектора x
@@ -170,9 +170,9 @@ GEN_GetDataTickerListCSV <- function (ticker.list = "TickerList.csv", from.date,
 	# если фреймы - вектор, то 
 	period.min <- period[1]
 	FirstTime <- TRUE 
-	for (i in 1:nstocks){
+	for (i in 1:nstocks) {
 		# цикл загрузки с max количеством попыток
-		for(t in 1:maxretryattempts){
+		for (t in 1:maxretryattempts) {
 			cat( "(", i , "/" , nstocks, ")", "Downloading: ", stocks.list[i,1] , "\t Attempt: ", t , "/", maxretryattempts,"\n")
 			data <- GEN_GetData(ticker = stocks.list[i,1], from.date = from.date, to.date = to.date, period = period.min)
 			if (exists("data")) {
@@ -205,7 +205,7 @@ GEN_GetDataTickerListCSV <- function (ticker.list = "TickerList.csv", from.date,
  	stocks.list <- read.csv(ticker.list, header = F, stringsAsFactors = F) 
 	nstocks <- nrow(stocks.list)
 	FirstTime <- TRUE
-	for (i in 1:nstocks){
+	for (i in 1:nstocks) {
 		if (description!= FALSE) {
 			data.name <- paste(stocks.list[i,1], description, sep = ".")	
 		} else {
@@ -352,8 +352,7 @@ GEN_ParseLabsCSV <- function (file.path = file.path, var.list, profit=profit,
     temp.frame$draw <- as.numeric( gsub("\\s", "", temp.frame$draw) )
     temp.frame$temp.frame <- NULL
     # чистим от лишнего 
-    remove(file)
-    
+    remove(file)  
     # сортировка по профиту
     if (sort == TRUE) {
         temp.frame <- temp.frame[order(-temp.frame$profit),]
@@ -425,7 +424,7 @@ GEN_CompareLabsFile <- function (file1, file2, rec=FALSE, p.diff=TRUE) {
 #
 GEN_BotBinNumGenLabsFile <- function (n) {
     decimals <- seq(0, 2^n-1)
-    m <- sapply(decimals,function(x){ as.integer(intToBits(x))})
+    m <- sapply(decimals,function(x) { as.integer(intToBits(x))})
     m <- head(m ,3)
     m <- t(head(m, n))
     bot.num.table <- cbind(rep(0, nrow(m)), m)
