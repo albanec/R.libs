@@ -19,8 +19,9 @@ CLU_CalcKmean.Parameters <- function (data, iter.max = 100, plusplus = FALSE) {
 	ss <- c()
 	p.exp <- c()
 	for(i in cluster.range){
+		cat(i , "\n")
 		if (plusplus == TRUE) {
-			cluster.data <- CLU_CalcKmean.PlusPlus(data, n.opt=i, iter.max)
+			cluster.data <- CLU_CalcKmean.PlusPlus(data, n.opt = i, iter.max = iter.max)
 		} else {
 			cluster.data <- kmeans(data, centers = i, iter.max)	
 		}
@@ -41,7 +42,7 @@ CLU_CalcKmean.Parameters <- function (data, iter.max = 100, plusplus = FALSE) {
 	#n.opt <- n[which.max(n)]
 	n.opt <- n.byVar 
 	#
-	return(list(ss.df, n.opt))
+	return (list(ss.df, n.opt))
 }
 #
 CLU_ChartKmean.SS <- function (ss.df, n.opt) {
@@ -64,10 +65,10 @@ CLU_ChartKmean.SS <- function (ss.df, n.opt) {
   			annotations = list(
   							   list(x = n.opt, y = Total.Within.SS[(n.opt - 1)], text = "nOptimal", ax = 30, ay = -40)))
   	#
-  	return(p)
+  	return (p)
 }
 #
-CLU_CalcKmean.PlusPlus <- function (data, n.opt, iter.max) {
+CLU_CalcKmean.PlusPlus <- function (data, n.opt, iter.max = 100) {
 	# ----------
 	# Общее описание:
 	#   функция вычисления модного k-mean++ 
@@ -124,7 +125,7 @@ CLU_CalcKmean.PlusPlus <- function (data, n.opt, iter.max) {
 	# рассчёт кластеров, исходя из найденных центров
 	cluster.data <- kmeans(data, data[centers, ], iter.max)
 	#
-	return(cluster.data)
+	return (cluster.data)
 }
 #
 CLU_CalcKmean <- function (data, n.opt, iter.max = 100, plusplus = FALSE) {
