@@ -45,29 +45,6 @@ CLU_CalcKmean.Parameters <- function (data, iter.max = 100, plusplus = FALSE) {
 	return (list(ss.df, n.opt))
 }
 #
-CLU_ChartKmean.SS <- function (ss.df, n.opt) {
-	# ----------
-	# Общее описание:
-	#   функция визуализации вычисления оптимального количества кластеров
-	# Входные данные:
-	#   data: (=ss.df) df суммарной дисперсии по кластерам
-	# n.opt: оптимальное число кластеров для заданного набора данных
-	# Выходные данные:
-	# p: график
-	# Зависимости:
-	require(plotly)
-	# ----------
-	ss.df <- as.data.frame(ss.df)	
-	p <- plot_ly(ss.df, x = Num.Of.Clusters, y = Total.Within.SS, mode = "lines+markers", color = Pct.Change, 
-        		 marker = list(symbol = "circle-dot", size = 10),
-        		 line = list(dash = "2px")) %>% 
-  		layout(title = "Суммарная ошибка по кластерам", 
-  			annotations = list(
-  							   list(x = n.opt, y = Total.Within.SS[(n.opt - 1)], text = "nOptimal", ax = 30, ay = -40)))
-  	#
-  	return (p)
-}
-#
 CLU_CalcKmean.PlusPlus <- function (data, n.opt, iter.max = 100) {
 	# ----------
 	# Общее описание:
@@ -103,11 +80,17 @@ CLU_CalcKmean.PlusPlus <- function (data, n.opt, iter.max = 100) {
 			# рассчёт кум. суммы квадратов расстояний
 			data$ss <- cumsum(data$s)
 		} else {
-			# вероятность выбора нового центра 
-			pr <- runif(1, 0, 1)
-			ss.step <- pr * data$ss[[n]]
-			center.id <- min(which(data$ss > ss.step))
+			# цикл расчёта остальных центров (с проверкой на совпадения)
+			repeat {
+				# вероятность выбора нового центра 
+				pr <- runif(1, 0, 1)
+				ss.step <- pr * data$ss[[n]]
+				center.id <- min(which(data$ss > ss.step))	
+				if (center.id %in% centers == FALSE) break
+			}
+			# запись найденного центра
 			centers	<- c(centers, center.id)
+			# расчет дальностей для найденного центра 
 			data$s <- NULL
 			data$ss <- NULL
 			if (n.dim == 1) {
@@ -158,9 +141,102 @@ CLU_CalcKmean <- function (data, n.opt, iter.max = 100, plusplus = FALSE) {
 	#return (data)
 }
 #
+CLU_PlotKmean.SS <- function (ss.df, n.opt) {
+	# ----------
+	# Общее описание:
+	#   функция визуализации вычисления оптимального количества кластеров
+	# Входные данные:
+	#   data: (=ss.df) df суммарной дисперсии по кластерам
+	# n.opt: оптимальное число кластеров для заданного набора данных
+	# Выходные данные:
+	# p: график
+	# Зависимости:
+	require(plotly)
+	# ----------
+	ss.df <- as.data.frame(ss.df)	
+	p <- plot_ly(ss.df, x = Num.Of.Clusters, y = Total.Within.SS, mode = "lines+markers", color = Pct.Change, 
+        		 marker = list(symbol = "circle-dot", size = 10),
+        		 line = list(dash = "2px")) %>% 
+  		layout(title = "Суммарная ошибка по кластерам", 
+  			annotations = list(
+  							   list(x = n.opt, y = Total.Within.SS[(n.opt - 1)], text = "nOptimal", ax = 30, ay = -40)))
+  	#
+  	return (p)
+}	
+#
+CLU_PlotKmean.Clusters <- function (data.list, cluster.color = FALSE, dimension = "3d", 
+									plot.title = "ClustersPlot", xaxis.name = "FastMA", yaxis.name = "SlowMA", 
+									zaxis.name = "PER", 
+									point.size = 4, point.opacity = 0.8, point.line.width = 2,
+									center.size = 10, center.color = "black") {
+	# ----------
+	# Общее описание:
+	#   функция визуализации найденных кластеров
+	# Входные данные:
+	#   data.list: лист, содержащий в себе данные и центры кластеров
+	#	3D: FALSE/TRUE 
+	#	cluster.color: TRUE/FALSE расцветка точек по профиту или кластеру
+	# 	plot.title, xaxis.name, yaxis.name, zaxis.name: название гарфика и осей
+	# point.size, point.opacity, point.line.width: отрисовка точек
+	# center.size, center.color: отрисовка центроидов кластеров
+	# Выходные данные:
+	# p: график
+	# Зависимости:
+	require(plotly)
+	# ----------
+	# 
+	# подготовка данных
+	data <- as.data.frame(data.list[1])
+	centers <- as.data.frame(data.list[2])
+	mycolors <-  rainbow(30, start=0.3, end=0.95)
+	# подсветка точек (по кластерам или стандартная по доходности)
+	if (cluster.color == TRUE) {
+		point.color <- "cluster"
+	} else {
+		point.color <- data$profit.norm  
+	}
+	# выбор 3D / 2D	
+	if (dimension == "3d") {
+		# базовый график
+		p <- plot_ly(data, x = var1, y = var2, z = var3, type = "scatter3d", mode = "markers", name = "Clusters",
+					 colors = mycolors, opacity = point.opacity, color = point.color,
+					 hoverinfo = "text", text = paste(xaxis.name, data$var1, "<br>",
+					 								  yaxis.name, data$var2, "<br>",
+					 								  zaxis.name, data$var3, "<br>",
+					 								  "ProfitNorm:", round(profit.norm, 3), "<br>",
+					 								  "Cluster:", data$cluster), 
+					 marker = list(symbol = "circle",  size = point.size, 
+                    			   line = list(color = "#262626", width = point.line.width, opacity = 0.5)),
+               	     showlegend = FALSE)
+		# добавляем центроиды кластеров
+		p <- add_trace(centers, x = var1, y = var2, z = var3, type = "scatter3d", mode = "markers", name = "Cluster Centers",
+					   hoverinfo = "text", text = paste(xaxis.name, centers$var1, "<br>",
+					 								  	yaxis.name, centers$var2, "<br>",
+					 								  	zaxis.name, centers$var3, "<br>",
+					   									"CenterID:", centers$cluster),
+                	   marker = list(color = center.color, symbol = "cross", size = center.size))
+		# парметры графиков
+		p <- layout(title = paste(plot.title), xaxis = paste(xaxis.name), yaxis = paste(yaxis.name), zaxis = paste(zaxis.name))
+	} else {
+		# базовый график
+		p <- plot_ly(data, x = var1, y = var2, mode = "markers", name = "Clusters",
+					 colors = mycolors, opacity = point.opacity, color = point.color,
+					 hoverinfo = "text", text = paste(xaxis.name , var1, "<br>", 
+					 								  yaxis.name, var2, "<br>",
+					 								  "ProfitNorm:", round(profit.norm, 3), "<br>", 
+					 								  "Cluster:", cluster), 
+					 marker = list(symbol = "circle", size = point.size, 
+                    			   line = list(color = "#262626", width = point.line.width, opacity = 0.5)),
+               	     showlegend = FALSE)
+		# добавляем центроиды кластеров
+		p <- add_trace(centers, x = var1, y = var2, mode = "markers", name = "Cluster Centers",
+					   hoverinfo = "text", text = paste(xaxis.name, centers$var1, "<br>",
+					   									yaxis.name, centers$var1, "<br>",
+					   									"CenterID:", cluster),
+                	   marker = list(color = center.color, symbol = "cross", size = center.size))
+		# парметры графиков
+		p <- layout(title = paste(plot.title), xaxis = paste(xaxis.name), yaxis = paste(yaxis.name))
+	}
+	return(p)
+}
 	
-	p1 <- plot_ly(temp.data, x=var1, y=var2, z=var3, type ="scatter3d", mode="markers",  marker= list(size=10, color = "black"))
-	p2 <- plot_ly(data, x=var1, y=var2, z=var3, 
-              type="scatter3d", mode="markers", color=cluster, 
-              colors=mycolors, marker = list(size = 4))
-p <- subplot(p1, p2 )
