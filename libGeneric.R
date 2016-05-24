@@ -493,7 +493,7 @@ GEN_QuantLabsFile <- function (data, var, q.hi = 0, q.low = 0, two = FALSE, low 
 }
 #
 GEN_AllPreparationLabsFile <- function (file.path, var.list, profit=profit, draw=draw, m, 
-								  slab = TRUE, q.hi, one.scale=TRUE, sep = ";", tslab = TRUE) {
+								  slab = TRUE, q.hi, one.scale=TRUE, sep = ";", tslab = TRUE, trend.filter = FALSE) {
     data <- GEN_ParseLabsCSV(file.path = file.path, var.list, profit=profit, 
     						 draw=draw, sort=FALSE, var.names=FALSE, sep)
     if (tslab == FALSE) {
@@ -501,9 +501,10 @@ GEN_AllPreparationLabsFile <- function (file.path, var.list, profit=profit, draw
         data <- GEN_DuplicatedRowFilterLabsFile(data)
     }
     data$profit.norm <- GEN_ProfitNormLabsFile(data, m = m)
-    data <- data[which(data$var1 < data$var2),]
+    if (trend.filter == TRUE) {
+    	data <- data[which(data$var1 < data$var2),]	
+    }
     data <- data[which(data$profit.norm > 0),]
-    mycolors <-  rainbow(30, start=0.3, end=0.95)
     #
     data <- GEN_QuantLabsFile(data, var=6, q.hi, hi=TRUE, abs=FALSE)
     if (one.scale == TRUE) {

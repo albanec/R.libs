@@ -111,7 +111,7 @@ CLU_CalcKmean.PlusPlus <- function (data, n.opt, iter.max = 100) {
 	return (cluster.data)
 }
 #
-CLU_CalcKmean <- function (data, n.opt, iter.max = 100, plusplus = FALSE) {
+CLU_CalcKmean <- function (data, n.opt, iter.max = 100, plusplus = FALSE, var.digits = 0) {
 	# ----------
 	# Общее описание:
 	#   функция вычисления k-mean кластеров
@@ -133,7 +133,7 @@ CLU_CalcKmean <- function (data, n.opt, iter.max = 100, plusplus = FALSE) {
 	# соотнесение данных по кластерам
 	data$cluster <- as.factor(cluster.data$cluster)
 	# вычисление центров кластеров 
-	cluster.centers <- round(cluster.data$centers[, -ncol(cluster.data$centers)])
+	cluster.centers <- round(cluster.data$centers[, -ncol(cluster.data$centers)], digits = var.digits)
 	cluster.centers <- cbind(cluster.centers, round(cluster.data$centers[, ncol(cluster.data$centers)], digits = 3))
 	colnames(cluster.centers)[ncol(cluster.centers)] <- "profit.norm"
 	#
@@ -167,7 +167,7 @@ CLU_PlotKmean.SS <- function (ss.df, n.opt) {
 CLU_PlotKmean.Clusters <- function (data.list, cluster.color = FALSE, dimension = "3d", 
 									plot.title = "ClustersPlot", xaxis.name = "FastMA", yaxis.name = "SlowMA", 
 									zaxis.name = "PER", 
-									point.size = 4, point.opacity = 0.8, point.line.width = 2,
+									point.size = 4, point.opacity = 0.8, point.line.width = 2, point.line.opacity = 0.5,
 									center.size = 10, center.color = "black") {
 	# ----------
 	# Общее описание:
@@ -191,7 +191,7 @@ CLU_PlotKmean.Clusters <- function (data.list, cluster.color = FALSE, dimension 
 	mycolors <-  rainbow(30, start=0.3, end=0.95)
 	# подсветка точек (по кластерам или стандартная по доходности)
 	if (cluster.color == TRUE) {
-		point.color <- "cluster"
+		point.color <- data$cluster
 	} else {
 		point.color <- data$profit.norm  
 	}
@@ -209,14 +209,16 @@ CLU_PlotKmean.Clusters <- function (data.list, cluster.color = FALSE, dimension 
                     			   line = list(color = "#262626", width = point.line.width, opacity = 0.5)),
                	     showlegend = FALSE)
 		# добавляем центроиды кластеров
-		p <- add_trace(centers, x = var1, y = var2, z = var3, type = "scatter3d", mode = "markers", name = "Cluster Centers",
+		p <- add_trace(centers, x = var1, y = var2, z = var3, 
+					   type = "scatter3d", mode = "markers", name = "Cluster Centers",
 					   hoverinfo = "text", text = paste(xaxis.name, centers$var1, "<br>",
 					 								  	yaxis.name, centers$var2, "<br>",
 					 								  	zaxis.name, centers$var3, "<br>",
 					   									"CenterID:", centers$cluster),
                 	   marker = list(color = center.color, symbol = "cross", size = center.size))
 		# парметры графиков
-		p <- layout(title = paste(plot.title), xaxis = paste(xaxis.name), yaxis = paste(yaxis.name), zaxis = paste(zaxis.name))
+		p <- layout(title = paste(plot.title), 
+					xaxis = paste(xaxis.name), yaxis = paste(yaxis.name), zaxis = paste(zaxis.name))
 	} else {
 		# базовый график
 		p <- plot_ly(data, x = var1, y = var2, mode = "markers", name = "Clusters",
@@ -226,7 +228,8 @@ CLU_PlotKmean.Clusters <- function (data.list, cluster.color = FALSE, dimension 
 					 								  "ProfitNorm:", round(profit.norm, 3), "<br>", 
 					 								  "Cluster:", cluster), 
 					 marker = list(symbol = "circle", size = point.size, 
-                    			   line = list(color = "#262626", width = point.line.width, opacity = 0.5)),
+                    			   line = list(color = "#262626", width = point.line.width, 
+                    			   			   opacity = point.line.opacity)),
                	     showlegend = FALSE)
 		# добавляем центроиды кластеров
 		p <- add_trace(centers, x = var1, y = var2, mode = "markers", name = "Cluster Centers",
