@@ -1,4 +1,4 @@
-CLU_CalcKmean.Parameters <- function (data, iter.max = 100, plusplus = FALSE) {
+CLU_CalcKmean.Parameters <- function (data, test.range = 30, iter.max = 100, plusplus = FALSE) {
 	# ----------
 	# Общее описание:
 	# функция определения оптимального числа k-mean кластеров
@@ -10,7 +10,7 @@ CLU_CalcKmean.Parameters <- function (data, iter.max = 100, plusplus = FALSE) {
 	# ss.df: df суммарного отклонения по кластерам
 	# ----------
 	#
-	cluster.range <- 2:30
+	cluster.range <- 2:test.range
 	#Isolate required features
 	data$profit <- NULL
 	data$draw <- NULL
@@ -19,7 +19,7 @@ CLU_CalcKmean.Parameters <- function (data, iter.max = 100, plusplus = FALSE) {
 	ss <- c()
 	p.exp <- c()
 	for(i in cluster.range){
-		cat(i , "\n")
+		#cat(i , "\n")
 		if (plusplus == TRUE) {
 			cluster.data <- CLU_CalcKmean.PlusPlus(data, n.opt = i, iter.max = iter.max)
 		} else {
@@ -30,9 +30,9 @@ CLU_CalcKmean.Parameters <- function (data, iter.max = 100, plusplus = FALSE) {
 	}
 	# сводим всё в df
 	ss.df <- data.frame(Num.Of.Clusters = cluster.range,
-                    	  Total.Within.SS = ss,
-                    	  Pct.Change = c(NA, diff(ss)/ss[1:length(ss)-1]) * 100,
-                    	  Pct.Exp = p.exp)
+                    	Total.Within.SS = ss,
+                    	Pct.Change = c(NA, diff(ss)/ss[1:length(ss)-1]) * 100,
+                    	Pct.Exp = p.exp)
 	# вычисление оптимального количества кластеров
 	# byVar: опт. число кластеров определяется как min число, описывающее 90% пространства
 	n.byVar <- min(which(p.exp > 0.9) )
@@ -114,12 +114,13 @@ CLU_CalcKmean.PlusPlus <- function (data, n.opt, iter.max = 100) {
 CLU_CalcKmean <- function (data, n.opt, iter.max = 100, plusplus = FALSE, var.digits = 0) {
 	# ----------
 	# Общее описание:
-	#   функция вычисления k-mean кластеров
+	# функция вычисления k-mean кластеров
 	# Входные данные:
-	#   data: подготовленные данные
+	# data: подготовленные данные
 	# iter.max: количество итераций вычислений кластера
 	# n.opt: оптимальное число кластеров для заданного набора данных
 	# plusplus: использовать простой k-mean или k-mean++
+	# var.digits: количество занаков после точки в значениях центров кластеров
 	# Выходные данные:
 	# list(data, cluster.centers): лист с данными (сод. номера кластеров) + df с центрами кластеров
 	# ----------
@@ -177,7 +178,7 @@ CLU_PlotKmean.Clusters <- function (data.list, cluster.color = FALSE, dimension 
 	#	3D: FALSE/TRUE 
 	#	cluster.color: TRUE/FALSE расцветка точек по профиту или кластеру
 	# 	plot.title, xaxis.name, yaxis.name, zaxis.name: название гарфика и осей
-	# point.size, point.opacity, point.line.width: отрисовка точек
+	# point.size, point.opacity, point.line.width, point.line.opacity: отрисовка точек
 	# center.size, center.color: отрисовка центроидов кластеров
 	# Выходные данные:
 	# p: график
@@ -195,6 +196,8 @@ CLU_PlotKmean.Clusters <- function (data.list, cluster.color = FALSE, dimension 
 	} else {
 		point.color <- data$profit.norm  
 	}
+	# стиль шрифта надписей
+    font.style <- list(family = "Courier New, monospace", size = 18, color = "#6699ff")
 	# выбор 3D / 2D	
 	if (dimension == "3d") {
 		# базовый график
@@ -203,7 +206,7 @@ CLU_PlotKmean.Clusters <- function (data.list, cluster.color = FALSE, dimension 
 					 hoverinfo = "text", text = paste(xaxis.name, data$var1, "<br>",
 					 								  yaxis.name, data$var2, "<br>",
 					 								  zaxis.name, data$var3, "<br>",
-					 								  "ProfitNorm:", round(profit.norm, 3), "<br>",
+					 								  "ProfitNorm:", round(data$profit.norm, 3), "<br>",
 					 								  "Cluster:", data$cluster), 
 					 marker = list(symbol = "circle",  size = point.size, 
                     			   line = list(color = "#262626", width = point.line.width, opacity = 0.5)),
@@ -216,17 +219,19 @@ CLU_PlotKmean.Clusters <- function (data.list, cluster.color = FALSE, dimension 
 					 								  	zaxis.name, centers$var3, "<br>",
 					   									"CenterID:", centers$cluster),
                 	   marker = list(color = center.color, symbol = "cross", size = center.size))
-		# парметры графиков
-		p <- layout(title = paste(plot.title), 
-					xaxis = paste(xaxis.name), yaxis = paste(yaxis.name), zaxis = paste(zaxis.name))
+		# надписи на графике
+		p <- layout(title = plot.title, 
+                    scene = list(xaxis = list(title = xaxis.name, titlefont = font.style), 
+                        		 yaxis = list(title = yaxis.name, titlefont = font.style), 
+                        		 zaxis = list(title = zaxis.name, titlefont = font.style)))
 	} else {
 		# базовый график
 		p <- plot_ly(data, x = var1, y = var2, mode = "markers", name = "Clusters",
 					 colors = mycolors, opacity = point.opacity, color = point.color,
-					 hoverinfo = "text", text = paste(xaxis.name , var1, "<br>", 
-					 								  yaxis.name, var2, "<br>",
-					 								  "ProfitNorm:", round(profit.norm, 3), "<br>", 
-					 								  "Cluster:", cluster), 
+					 hoverinfo = "text", text = paste(xaxis.name , data$var1, "<br>", 
+					 								  yaxis.name, data$var2, "<br>",
+					 								  "ProfitNorm:", round(data$profit.norm, 3), "<br>", 
+					 								  "Cluster:", data$cluster), 
 					 marker = list(symbol = "circle", size = point.size, 
                     			   line = list(color = "#262626", width = point.line.width, 
                     			   			   opacity = point.line.opacity)),
@@ -235,10 +240,12 @@ CLU_PlotKmean.Clusters <- function (data.list, cluster.color = FALSE, dimension 
 		p <- add_trace(centers, x = var1, y = var2, mode = "markers", name = "Cluster Centers",
 					   hoverinfo = "text", text = paste(xaxis.name, centers$var1, "<br>",
 					   									yaxis.name, centers$var1, "<br>",
-					   									"CenterID:", cluster),
+					   									"CenterID:", centers$cluster),
                 	   marker = list(color = center.color, symbol = "cross", size = center.size))
-		# парметры графиков
-		p <- layout(title = paste(plot.title), xaxis = paste(xaxis.name), yaxis = paste(yaxis.name))
+		# надписи на графике
+		p <- layout(title = plot.title, 
+					xaxis = list(title = xaxis.name, titlefont = font.style), 
+					yaxis = list(title = yaxis.name, titlefont = font.style))
 	}
 	return(p)
 }
