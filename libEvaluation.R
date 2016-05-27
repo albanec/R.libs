@@ -191,9 +191,31 @@ EVA_DateTable <- function (states.data) {
   # Зависимости:
   require(PerformanceAnalytics)
   # ----------
-  
+  #
+  cat("Build Date Metrics", "\n", sep = "  ")
+  date.table <- cbind(ticker, from.date, to.date, period, 
+                                    ))
 }
-# 
+#
+EVA_TradingDays <- function(from.date, to.date, calendar = "Russia/MOEX") {
+  # ----------
+  # Общее описание:
+  # функция возвращает количетво торговых дней за период бека по календарю биржи
+  # Входные данные:
+  # from.date, to.date: начало/конец торговли 
+  # calendar: регион/биржа торгового календаря
+  # Выходные данные:
+  # tradind.days: количество торговых дней
+  # Зависимости:
+  require(RQuantLib)
+  # ----------
+  #
+  from.date <- as.Date(from.date) 
+  to.date <- as.Date(to.date)
+  tradind.days <- businessDaysBetween(calendar, from = from.date, to = to.date, includeFirst = 1, includeLast = 1)
+  return (tradind.days)
+}
+#
 # Расчет коэффициентов продуктивности:
 EVA_RatioTable <- function (returns.data) {
   # ----------
@@ -314,6 +336,7 @@ EVA_DrawdownTable <- function (returns.data, plot = FALSE, period = "15") {
                                 "MeanDrawdownDays", "NowDrawdownDays", "NowDrawdownPeriods", "NowDrawdown")  
   return(drawdown.table)
 }
+#
 #
 # Вывод графиков:
 EVA_BigPlot <- function(returns, MarginPlot = FALSE, ReturnsPlot = FALSE, DrawdownShadowPlot = FALSE, DrawdownPlot = FALSE, CandlePlot = FALSE, period = "15 min") {

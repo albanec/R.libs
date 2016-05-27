@@ -558,7 +558,7 @@ GEN_QuantLabsFile <- function (data, var, q.hi = 0, q.low = 0, two = FALSE, low 
 }
 #
 GEN_AllPreparationLabsFile <- function (file.path, sep = ";",
-										var.list, profit = profit, draw=draw, m, 
+										var.list, profit = profit, draw=draw, m=FALSE, 
 								  		q.hi = FALSE, q.low = FALSE, low = FALSE, hi = FALSE,
 								  		one.scale=TRUE,  tslab = TRUE, trend.filter = TRUE) {
     # ----------
