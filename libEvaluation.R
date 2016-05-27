@@ -197,7 +197,7 @@ EVA_DateTable <- function (states.data) {
                                     ))
 }
 #
-EVA_TradingDays <- function(from.date, to.date, calendar = "Russia/MOEX") {
+EVA_CalcTradingDays <- function(from.date, to.date, calendar = "Russia/MOEX") {
   # ----------
   # Общее описание:
   # функция возвращает количетво торговых дней за период бека по календарю биржи
