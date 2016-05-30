@@ -1,4 +1,49 @@
 #
+GEN_PrepareForWork.Packages <- function (package.list.csv, package.list = FALSE, download = FALSE, 
+									 update = FALSE) {
+	# ----------
+	# Общее описание:
+	# 	функция загружает, устанавливает и подключает необходимые пакеты 
+	# Входные данные:
+	# 	package.list.csv или package.list: путь к .csv или вектор с пакетами 
+	#	download, update или load: загрузить, обновить или подколючить пакеты
+	# ----------
+	#
+	if (package.list == FALSE) {
+		cat("Package List Path:", package.list.csv, "\n")	
+		cat("Reading Package Lists...", "\n")
+		package.list <- read.csv(package.list.csv, header = F, stringsAsFactors = F)	
+		package.list <- unlist(package.list, use.names = FALSE)	
+	} 
+	cat("Loading Installed Package List...", "\n")
+	if (update == TRUE) {
+		cat ("Start Upgrading packages", "\n")
+		update.packages(ask = FALSE)
+		cat ("Upgrade Packages: OK", "\n")
+		download <- FALSE
+	} 
+	if (download == TRUE) {
+		package.list.temp1 <- setdiff(package.list, rownames(installed.packages()))
+		if (length(package.list.temp1) > 0) {
+			install.packages(package.list.temp1, dependencies = TRUE)		
+			package.list.temp2 <- setdiff(package.list.temp1, rownames(installed.packages()))
+			if (length(package.list.temp2) > 0) {
+				warning("Installation Error!!!")
+			} else {
+				cat (length(diff(package.list, package.list.temp1)), " packages newly installed!", "\n")
+				cat("Installation Complete", "\n")
+			}
+		} else {
+			cat ("All Packages Already Installed!", "\n")
+		}	
+	}
+	if (load == TRUE) {
+		cat("Load Libraries to Workspace")
+		lapply(package.list, library, character.only = TRUE)
+		cat("Libraries Prepare to Work")
+	}
+}
+#
 GEN_RepeatRow <- function(x,n) {
 	# ----------
 	# Общее описание:

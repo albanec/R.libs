@@ -3,7 +3,7 @@
 #####################
 				####################
 #
-STR_SigToState <- function(x) {
+STR_SigToState <- function (x) {
 	# ----------
 	# Общее описание:
 	# 	функция для перехода к состояниям (фильтрация сигналов)
@@ -19,10 +19,10 @@ STR_SigToState <- function(x) {
 	x$y <- rep( NA, length(x$a) )
 	x$y[ind] = x$a[ind]
 	x$y[1] <- x$a[1]
-	return(x$y)
+	return (x$y)
 }
 #
-STR_CrossForVector <- function(x1,x2) {
+STR_CrossLineForVector <- function (x1,x2) {
 	# ----------
 	# Общее описание:
 	# 	функция вычисляет пересечения графиков векторов
@@ -36,10 +36,11 @@ STR_CrossForVector <- function(x1,x2) {
 	x <- diff(x1>x2)
 	x[1] <- 0
 	x[x<0] <- 0
-	return(as.logical(c(0,x)))
+	x <- as.logical(c(0,x))
+	return (x)
 }
 #
-STR_CrossForXTS <- function(x1,x2) {
+STR_CrossLineForXTS <- function (x1,x2) {
 	# ----------
 	# Общее описание:
 	# 	функция вычисляет пересечения графиков рядов
@@ -53,7 +54,8 @@ STR_CrossForXTS <- function(x1,x2) {
 	x <- diff(x1>x2)
 	x[1] <- 0
 	x[x<0] <- 0
-	return(sign(x))
+	x <- sign(x)
+	return (x)
 }
 #
 STR_CalcState <- function(data) {
@@ -175,7 +177,7 @@ STR_CalcEquity <- function (data, s0 = 0, abs = FALSE, SR = FALSE, LR = FALSE, r
 			data$equity <- data$Open[[1]] * (exp(as.numeric(last(data$margin))) - 1)
 		#}
 	}
-	return(data)
+	return (data)
 }
 #
 STR_CalcProfit <- function (data, s0 = 0, pip, reinvest = TRUE) {
