@@ -1,9 +1,8 @@
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # описания стратегий и вспомагательных функций
-
-#####################
-				####################
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #
-STR_SigToState <- function (x) {
+STR_Convert.SigToState <- function (x) {
 	# ----------
 	# Общее описание:
 	# 	функция для перехода к состояниям (фильтрация сигналов)
@@ -22,7 +21,7 @@ STR_SigToState <- function (x) {
 	return (x$y)
 }
 #
-STR_CrossLineForVector <- function (x1,x2) {
+STR_CrossLine.ForVector <- function (x1,x2) {
 	# ----------
 	# Общее описание:
 	# 	функция вычисляет пересечения графиков векторов
@@ -40,7 +39,7 @@ STR_CrossLineForVector <- function (x1,x2) {
 	return (x)
 }
 #
-STR_CrossLineForXTS <- function (x1,x2) {
+STR_CrossLine.ForXTS <- function (x1,x2) {
 	# ----------
 	# Общее описание:
 	# 	функция вычисляет пересечения графиков рядов
@@ -58,7 +57,7 @@ STR_CrossLineForXTS <- function (x1,x2) {
 	return (x)
 }
 #
-STR_CalcState <- function(data) {
+STR_CalcState.Table <- function(data) {
 	# ----------
   	# Общее описание:
   	# функция для перехода к состояниям (фильтрация сигналов)
@@ -78,7 +77,7 @@ STR_CalcState <- function(data) {
 	return (data$state)
 }
 #
-STR_StateData <- function (data) {
+STR_CalcState.Data <- function (data) {
 	# ----------
   	# Общее описание:
   	# генерирует таблицу сделок
@@ -89,7 +88,7 @@ STR_StateData <- function (data) {
   	# Зависимости:
   	require(quantmod) 
 	# ----------
-	data$state <- STR_CalcState(data)
+	data$state <- STR_CalcState.Table(data)
 	state.data <- na.omit(data)
 	return (state.data)
 }
@@ -191,7 +190,7 @@ STR_CalcProfit <- function (data, s0 = 0, pip, reinvest = TRUE) {
 	return (profit)
 }
 #
-Strategy_PSARand2SMA <- function (data, slow.sma, fast.sma, accel.start=0.02, accel.max=0.2) {
+STR_PSARand2SMA <- function (data, slow.sma, fast.sma, accel.start=0.02, accel.max=0.2) {
  	require(quantmod) 
 	# описание psar.2sma стратегии 
 	data$sma <- SMA(Cl(data), slow.sma)
@@ -211,3 +210,34 @@ Strategy_PSARand2SMA <- function (data, slow.sma, fast.sma, accel.start=0.02, ac
 	return(data)
 }		
 #
+STR_NormStock.Price <- function(type = c("Open", "Close"), data, norm.data, tick, tick.price) {
+	# ----------
+    # Общее описание:
+    # Функция для расчёта стоимости тиков
+    # Входные данные:
+    # type: вектор типов данных
+    # data: данные котировок
+    # norm.data: данные USDRUB_TOM
+    # tick: USD/RUB 
+    # tick.price: стоимость одного тика
+    # Выходные данные:
+    # data: основной xts 
+	# ----------
+	for (i in 1:length(type)) {
+		temp.col.name <- paste("data$", type[i])
+		temp.norm.col.name <- paste("data.norm$", type[i], sep = "")
+		if (tick == "USD") {
+			temp.text <- paste(temp.col.name, ".usd", "<-", temp.col.name, "* tick.price", sep = "")
+			eval(parse(text = temp.text)) 
+			temp.text <- paste(temp.col.name, ".rub", "<-", temp.col.name, "* tick.price *",  temp.norm.col.name, 
+							   sep = "")
+			eval(parse(text = temp.text))	
+		} else {
+			temp.text <- paste(temp.col.name, ".usd", "<-", temp.col.name, "/", temp.norm.col.name, sep = "")
+			eval(parse(text = temp.text)) 
+			temp.text <- paste(temp.col.name, ".rub", "<-", temp.col.name, "* tick.price", sep = "")
+			eval(parse(text = temp.text))	
+		}
+	}
+	return(data)
+}
