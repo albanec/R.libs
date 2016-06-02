@@ -74,7 +74,7 @@ GEN_RepeatCol<-function(x,n) {
 	return(m)
 }
 #
-GEN_FindMaxDistancePoint <- function (y, x=1:len(y)) {
+GEN_FindMax.DistancePoint <- function (y, x=1:len(y)) {
 	# ----------
 	# Общее описание:
 	# Входные данные:
@@ -119,7 +119,7 @@ GEN_GetData <- function (ticker, from.date, to.date = Sys.Date(), period = "15mi
 	return(data)
 }
 #
-GEN_SaveXTStoCSV <- function (data, name, period = FALSE, tframe = FALSE) {
+GEN_Save.XTStoCSV <- function (data, name, period = FALSE, tframe = FALSE) {
 	# ----------
 	# Общее описание:
 	# 	функция записи XTS рядов в .csv файл 	
@@ -146,7 +146,7 @@ GEN_SaveXTStoCSV <- function (data, name, period = FALSE, tframe = FALSE) {
 	cat("Save OK : ", "\t", filename, "\n")
 }
 #
-GEN_ReadCSVtoXTS <- function (name, period = FALSE, tframe = FALSE) {
+GEN_Read.CSVtoXTS <- function (name, period = FALSE, tframe = FALSE) {
 	# ----------
 	# Общее описание:
 	# 	функция чтения XTS рядов из .csv файлов
@@ -174,7 +174,7 @@ GEN_ReadCSVtoXTS <- function (name, period = FALSE, tframe = FALSE) {
 	return(data)
 }
 #
-GEN_ReadSimpleCSV <- function (file.path, sep = ";") {
+GEN_Read.SimpleCSV <- function (file.path, sep = ";") {
 	# ----------
 	# Общее описание:
 	# функция считывания простых .csv
@@ -189,7 +189,7 @@ GEN_ReadSimpleCSV <- function (file.path, sep = ";") {
 	return (file)
 }
 #
-GEN_GetDataTickerListCSV <- function (ticker.list = "TickerList.csv", from.date, to.date, period, maxretryattempts = 5, description = FALSE) {
+GEN_GetData.TickerList <- function (ticker.list = "TickerList.csv", from.date, to.date, period, maxretryattempts = 5, description = FALSE) {
 	# ----------
 	# Общее описание:
 	# 	функция загрузки листа котировок за период from/to.date 
@@ -231,11 +231,11 @@ GEN_GetDataTickerListCSV <- function (ticker.list = "TickerList.csv", from.date,
 		data$LR <- Delt(data$Close, type = "log")
 		data$LR[1] <- 0
    		data.name <- as.character(data.name.list[i])
-   		GEN_SaveXTStoCSV(data = data, name = data.name, period = period.min)
+   		GEN_Save.XTStoCSV(data = data, name = data.name, period = period.min)
 	}
 }
 #
- GEN_StocksNameList <- function (ticker.list, description = FALSE) {
+GEN_StocksNameList <- function (ticker.list, description = FALSE) {
 	# ----------
 	# Общее описание:
 	# 	вспомогательная для GEN_GetTickerListData()
@@ -267,7 +267,7 @@ GEN_GetDataTickerListCSV <- function (ticker.list = "TickerList.csv", from.date,
 	return(data.name.list)
 }
 #
-GEN_TimeExpandData <- function(ticker.list, frame.list, period, description = FALSE) {
+GEN_ExpandData.Period <- function(ticker.list, frame.list, period, description = FALSE) {
 	# ----------
 	# Общее описание:
 	# 	функция выделения данных по tf и временному интервалу
@@ -292,7 +292,7 @@ GEN_TimeExpandData <- function(ticker.list, frame.list, period, description = FA
 	for (i in 1:nstocks) {
 		data.name <- as.character(data.name.list[i])
 		cat( "Processing StocksData:", "\t", data.name, "\n")
-		data.source <- GEN_ReadCSVtoXTS(name = data.name, period = period[1], tframe = FALSE)
+		data.source <- GEN_Read.CSVtoXTS(name = data.name, period = period[1], tframe = FALSE)
 		cat ("Expand...", "\t", data.name, "\n")
 		for (n in 1:nframe) {
 			# цикл time.frame'а
@@ -329,7 +329,7 @@ GEN_TimeExpandData <- function(ticker.list, frame.list, period, description = FA
 				data <- data.source[window]
 				ends <- endpoints(data, p1, k)
 				data <- data[ends]
-				GEN_SaveXTStoCSV(data = data, name = data.name, period = p, tframe = n)
+				GEN_Save.XTStoCSV(data = data, name = data.name, period = p, tframe = n)
 			}
 		}
 	}
@@ -340,13 +340,13 @@ GEN_TimeExpandData <- function(ticker.list, frame.list, period, description = FA
 	
 	# выгрузка данных
 	#filename <- paste("MergedData", ticker.list, sep = ".")
-	#data <- GEN_ReadCSVtoXTS (name = filename, period, tframe)
+	#data <- GEN_Read.CSVtoXTS (name = filename, period, tframe)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Фукции для парсинга готовых данных бэктеста (из TSlab & WealthLab) и подготовки для анализа:
 #
-GEN_ParseLabsCSV <- function (file.path = file.path, var.list, profit=profit, 
+GEN_Parse.LabsCSV <- function (file.path = file.path, var.list, profit=profit, 
 							draw = draw, sort = FALSE, var.names = TRUE, sep = ";") {
     # ----------
     # Общее описание:
@@ -363,7 +363,7 @@ GEN_ParseLabsCSV <- function (file.path = file.path, var.list, profit=profit,
     # ----------
     #
     # считывание файла 
-    file <- GEN_ReadSimpleCSV(file.path, sep)   
+    file <- GEN_Read.SimpleCSV(file.path, sep)   
     # выделяем нужные параметры
     # profit/draw
     profit.name <- file[[1, profit]] 
@@ -416,7 +416,7 @@ GEN_ParseLabsCSV <- function (file.path = file.path, var.list, profit=profit,
     return (temp.frame)
 }
 #
-GEN_CompareLabsFile <- function (file1, file2, rec=FALSE, p.diff=TRUE) {
+GEN_Compare.LabsFile <- function (file1, file2, rec=FALSE, p.diff=TRUE) {
 	# ----------
     # Общее описание:
     # функция для сравнения двух распарсенных данных бэктеста и вывода только 
@@ -527,7 +527,7 @@ GEN_BotNumSetLabsFile <- function (file, bot.num.table) {
     return (file$var0)
 }
 #
-GEN_DuplicatedRowFilterLabsFile <- function (file) {
+GEN_Filter.DuplicatedRow.LabsFile <- function (file) {
     # ----------
     # Общее описание:
     # Функция выделяет уникальные наборы параметров ботов
@@ -545,7 +545,7 @@ GEN_DuplicatedRowFilterLabsFile <- function (file) {
     file <- file[which(duplicated(file.temp$var0) == FALSE), ]
     return (file)
 }
-GEN_ProfitNormLabsFile <- function (file, m) {
+GEN_NormProfit.LabsFile <- function (file, m) {
     # ----------
     # Общее описание:
     # Функция нормировки профита к просадке и к году 
@@ -560,7 +560,7 @@ GEN_ProfitNormLabsFile <- function (file, m) {
     return (file$profit.norm)
 }
 #
-GEN_QuantLabsFile <- function (data, var, q.hi = 0, q.low = 0, two = FALSE, low = FALSE, hi = FALSE, abs = FALSE) {
+GEN_Quant.LabsFile <- function (data, var, q.hi = 0, q.low = 0, two = FALSE, low = FALSE, hi = FALSE, abs = FALSE) {
 	# ----------
     # Общее описание:
     # Функция вычисление лучших / худших значений (на основе квантиля) 
@@ -620,14 +620,14 @@ GEN_AllPreparationLabsFile <- function (file.path, sep = ";",
     # data: полностью обработанные данные
     # ----------
     #
-    data <- GEN_ParseLabsCSV(file.path = file.path, var.list, profit=profit, 
+    data <- GEN_Parse.LabsCSV(file.path = file.path, var.list, profit=profit, 
     						 draw=draw, sort=FALSE, var.names=FALSE, sep)
     if (tslab == FALSE) {
         data$var0 <- GEN_BotNumSetLabsFile(data, bot.num.table)    
-        data <- GEN_DuplicatedRowFilterLabsFile(data)
+        data <- GEN_Filter.DuplicatedRow.LabsFile(data)
     }
     if (m != FALSE) {
-    	data$profit.norm <- GEN_ProfitNormLabsFile(data, m = m)	
+    	data$profit.norm <- GEN_NormProfit.LabsFile(data, m = m)	
     	data <- data[which(data$profit.norm > 0),]
     } else {
     	data <- data[which(data$profit > 0),]
@@ -637,7 +637,7 @@ GEN_AllPreparationLabsFile <- function (file.path, sep = ";",
     }
     #
    	if (hi | low != FALSE) {
-   		data <- GEN_QuantLabsFile(data, var=6, q.hi, q.low, hi, low, abs=FALSE)
+   		data <- GEN_Quant.LabsFile(data, var=6, q.hi, q.low, hi, low, abs=FALSE)
    	}
     if (one.scale == TRUE) {
         data[nrow(data)+1, ] <- c(rep(0, length(var.list)+2), data$profit.norm[[which.max(data$profit.norm)]])
