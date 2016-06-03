@@ -12,10 +12,10 @@ STR_Convert.SigToState <- function (x) {
 	#	ряд сделок (отфильтрованный ряд сигналов)
 	# ----------
 	#
-	x$a <- na.locf( x )
-	x$a <- ifelse( is.na(x$a) | is.nan(x$a) | is.infinite(x$a), 0, x$a )
-	ind <- which( x$a != lag(x$a) )
-	x$y <- rep( NA, length(x$a) )
+	x$a <- na.locf(x)
+	x$a <- ifelse(is.na(x$a) | is.nan(x$a) | is.infinite(x$a), 0, x$a)
+	ind <- which(x$a != lag(x$a))
+	x$y <- rep(NA, length(x$a))
 	x$y[ind] = x$a[ind]
 	x$y[1] <- x$a[1]
 	return (x$y)
@@ -240,4 +240,37 @@ STR_NormStock.Price <- function(type = c("Open", "Close"), data, norm.data, tick
 		}
 	}
 	return(data)
+}
+#
+STR_TestStrategy <- function(data.list, tickers = c("Si", "Ri", "Br"), ) {
+	require(quantmod)
+	# выделяем Si
+	cat("Loading Si Data...", "\n")
+	data <- as.xts(data.list[[1]])
+	# добавляем индикаторы
+	cat("Calculate SMA with period:", sma.per, "\n")
+	data$sma <- SMA(Cl(data), sma.per)
+	data <- na.omit(data)
+	cat("Calculate $sig and $pos...", "\n")
+	data$sig <- ifelse(data$sma < data$Close, 1,
+					   ifelse(data$sma > data$Close, -1, 0))
+	# позиции зависят только от SMA
+	data$pos <- lag(data$sig)
+	data$pos[1] <- 0
+	# вывод транзакций 
+	data$diff.pos <- data$pos - lag(data$pos)
+	# расчет состояний 
+	data$state <- STR_Convert.SigToState(x = data$pos)
+	#data$test <- data$pos - lag(data$pos)
+	# сигналы на сброс позиций (1 для long и -1 для short)
+	cat("Calculate $sig.drop...", "\n")
+	data$sig.drop <- ifelse((((data$sma > data$Low) & (data$sig == 1)) | ((data$sma < data$High) & (data$sig == -1))) &
+						   (data$sig == data$pos), 
+						   1, 0)
+	data$pos.add <- lag(data$sig.add)
+	# сигналы на набор позиций 
+	data$sig.add <- as.xts(rollapply(data = data$sig, FUN = function(x) ifelse(cumsum(data$sig) )
+						   width = add.window, align = "right"))
+	as.xts(rollapply(data = zoo(indicator), FUN = FUN, width = 100, align = "right"))
+	
 }
