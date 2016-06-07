@@ -39,14 +39,14 @@ PCA_MergeData <- function (price = "SR", ticker.list, description = FALSE, perio
 	# ----------
 	# 
 	cat( "Generate DataNameList...", "\n")
-	data.name.list <- GEN_StocksNameList(ticker.list = ticker.list, description = description) 
+	data.name.list <- StocksNameList(ticker.list = ticker.list, description = description) 
 	nstocks <- nrow(data.name.list)
 	FirstTime <- TRUE
 	#  чтение и объединение данных
 	for (i in 1:nstocks) {
 		data.name <- as.character(data.name.list[i])
 		cat( "Processing StocksData:", "\t", data.name, "\n")
-		data <- GEN_ReadCSVtoXTS(name = data.name, period = period, tframe = tframe) 
+		data <- Read_CSVtoXTS(name = data.name, period = period, tframe = tframe) 
 		if (price == "Open") {
 			data <- data$Open
 			col.name <- paste(data.name, "Open")
@@ -88,11 +88,11 @@ PCA_MergeData <- function (price = "SR", ticker.list, description = FALSE, perio
 	merged.data <- na.omit(merged.data)
 	cat( "Save Data...", "\n") 
 	filename <- paste("MergedData", ticker.list, price, sep = ".")
-	GEN_SaveXTStoCSV(data = merged.data, name = filename, period = period, tframe = tframe)
+	Save_XTStoCSV(data = merged.data, name = filename, period = period, tframe = tframe)
 	return (merged.data)
 }
 #
-PCA_BindToMatrix <- function (data, load.filename = FALSE, save.filename = "Matrix.csv") {
+BindToMatrix <- function (data, load.filename = FALSE, save.filename = "Matrix.csv") {
 	# ----------
 	# Общее описание:
 	# 	вспомогательная для PCA_DataPreparation()
@@ -109,7 +109,7 @@ PCA_BindToMatrix <- function (data, load.filename = FALSE, save.filename = "Matr
 	# 
 	if (load.filename != FALSE) {
 		cat( "Loading Data for BindToMatrix...", "\n")
-		data <- GEN_ReadCSVtoXTS(name = load.filename)
+		data <- Read_CSVtoXTS(name = load.filename)
 	}
 	#преобразование в матрицу 
 	cat( "Create Matrix...", "\n")
@@ -119,7 +119,7 @@ PCA_BindToMatrix <- function (data, load.filename = FALSE, save.filename = "Matr
 	return (data)
 }
 #
-PCA_ExpandData <- function (ticker.list, frame.list, description, period,  approx, price) {
+ExpandData <- function(ticker.list, frame.list, description, period,  approx, price) {
 	# ----------
 	# Общее описание:
 	# 	генерирует большое количество данных для PCA (расширенное по периодам/тайм-фреймам)
@@ -182,7 +182,7 @@ PCA_ComputePCA <- function(data, period, tframe, price = "SR", KG.test = FALSE, 
 	components <- loadings[, 1:n.PC]
 	# нормализуем компоненты 
 	n <- ncol(data)
-	components <- components / GEN_RepeatRow(colSums(abs(components)), n)
+	components <- components / Repeat_Row(colSums(abs(components)), n)
 	# note that first component is market, and all components are orthogonal i.e. not correlated to market
 	market <- data %*% rep(1/n,n)
 	temp <- cbind(market, data %*% components)
@@ -249,7 +249,7 @@ PCA_DFtestPCA <- function (data) {
 	cat("Best DF-test result...", "\t", df.value[statPC], "\t", "PC:", statPC, "\n")
 	return (statPC) 
 }
-GEN_MergeBasketData <- function (ticker.list, period, tframe, description = FALSE) {
+MergeBasketData <- function(ticker.list, period, tframe, description = FALSE) {
 	# ----------
 	# Общее описание:
 	# 	объединяет котировки по портфелю
@@ -262,13 +262,13 @@ GEN_MergeBasketData <- function (ticker.list, period, tframe, description = FALS
 	# ----------
 	#
 	cat( "Generate DataNameList...", "\n")
-	data.name.list <- GEN_StocksNameList(ticker.list = ticker.list, description = description) 
+	data.name.list <- StocksNameList(ticker.list = ticker.list, description = description) 
 	nstocks <- nrow(data.name.list)
 	FirstTime <- TRUE
 	for (i in 1:nstocks) {
 		data.name <- as.character(data.name.list[i])
 		cat( "Processing StocksData:", "\t", data.name, "\n")
-		data <- GEN_ReadCSVtoXTS(name = data.name, period = period, tframe = tframe) 
+		data <- Read_CSVtoXTS(name = data.name, period = period, tframe = tframe) 
 		temp.data <- data$Open
 		temp.data$Close <- data$Close
 		temp.data$Volume <- data$Volume
@@ -308,7 +308,7 @@ PCA_BasketSpread <- function (data, ticker.list, period, pca.tframe, price, n.PC
 	# ----------
 	#
     cat( "Generate DataNameList...", "\n")
-    data.name.list <- GEN_StocksNameList(ticker.list = ticker.list, description = description) 
+    data.name.list <- StocksNameList(ticker.list = ticker.list, description = description) 
     nstocks <- nrow(data.name.list)
     cat("Loading components")
     components.filename <- paste("Components", ticker.list, period, pca.tframe, "csv", sep = ".")
@@ -371,7 +371,7 @@ PCA_ZScoresData <- function (data, vol = TRUE, sma.period) {
 	return(data)
 }
 #
-PCA_StrategySimpleMeanReversion <- function (data, sma.period, 
+PCA_Strategy_SimpleMeanReversion <- function (data, sma.period, 
 											 low.mark, hi.mark, 
 											 low.close.mark, hi.close.mark, 
 											 price = "LR", state=TRUE) {
@@ -413,9 +413,6 @@ PCA_StrategySimpleMeanReversion <- function (data, sma.period,
 		colnames(data)[colnames(data)=="pos"] <- "state"
 	}
 
-
-
-
 	# убираем лишнее и добавляем очишенные данные в ряд
 	data.temp$sig.clean <- exrem(data.temp$sig)
 	# убираем лишние столбцы
@@ -428,4 +425,4 @@ PCA_StrategySimpleMeanReversion <- function (data, sma.period,
 
 	# выгрузка данных
 	#filename <- paste("MergedData", ticker.list, sep = ".")
-	#data <- GEN_ReadCSVtoXTS(name = filename, period, tframe)
+	#data <- Read_CSVtoXTS(name = filename, period, tframe)
