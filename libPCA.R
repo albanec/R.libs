@@ -92,7 +92,7 @@ PCA_MergeData <- function (price = "SR", ticker.list, description = FALSE, perio
 	return (merged.data)
 }
 #
-BindToMatrix <- function (data, load.filename = FALSE, save.filename = "Matrix.csv") {
+PCA_BindToMatrix <- function (data, load.filename = FALSE, save.filename = "Matrix.csv") {
 	# ----------
 	# Общее описание:
 	# 	вспомогательная для PCA_DataPreparation()
@@ -119,7 +119,7 @@ BindToMatrix <- function (data, load.filename = FALSE, save.filename = "Matrix.c
 	return (data)
 }
 #
-ExpandData <- function(ticker.list, frame.list, description, period,  approx, price) {
+PCA_ExpandData <- function(ticker.list, frame.list, description, period,  approx, price) {
 	# ----------
 	# Общее описание:
 	# 	генерирует большое количество данных для PCA (расширенное по периодам/тайм-фреймам)
@@ -249,7 +249,7 @@ PCA_DFtestPCA <- function (data) {
 	cat("Best DF-test result...", "\t", df.value[statPC], "\t", "PC:", statPC, "\n")
 	return (statPC) 
 }
-MergeBasketData <- function(ticker.list, period, tframe, description = FALSE) {
+PCA_MergeBasketData <- function(ticker.list, period, tframe, description = FALSE) {
 	# ----------
 	# Общее описание:
 	# 	объединяет котировки по портфелю
