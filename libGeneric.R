@@ -220,9 +220,6 @@ GetData_TickerList <- function(ticker.list = "TickerList.csv", from.date, to.dat
 	} 
 	n.ticker <- length(ticker.list)
 	n.period <- length(period)
-	if (merge == TRUE) {
-		rename <- FALSE
-	}
 	# если фреймы - вектор, то 
 	period.min <- period[1]
 	FirstTime <- TRUE 
