@@ -385,7 +385,7 @@ MergeData_InList <- function(data.list) {
 	return(list(merged.data))
 }
 #
-NormData <- function(data, type) {
+NormData_NA <- function(data, type) {
 	# 
 	if (is.list(data) == TRUE) {
 		data <- data[[1]]
@@ -405,27 +405,26 @@ NormData <- function(data, type) {
 		data.names <- names(data)[grep("Close", names(data))]
 		data.names <- sub(".Close", "", data.names)
 		for (i in 1:length(data.names)) {
-			temp.text <- paste("n.na <- which(is.na(data$",data.names[i],".Open)) ; ",
-							   "data$",data.names[i],".Open[n.na] <- ",
-							   		"data$",data.names[i],".Close[which.max(n.na > which(!n.na)))] ; ",
-							   "n.na <- which(is.na(data$",data.names[i],".Close)) ; ",
-							   "data$",data.names[i],".Close[n.na] <- ",
-							   		"data$",data.names[i],".Open[which.min(n.na < which(!n.na)))] ; ",
-							   "n.na <- which(is.na(data$",data.names[i],".Hi)) ; ",
-							   "data$",data.names[i],".Hi[n.na] <- ",
-							   		"max(data$",data.names[i],".Open[n.na], data$",data.names[i],".Close[n.na]) ; ",
-							   "n.na <- which(is.na(data$",data.names[i],".Low)) ; ",
-							   "data$",data.names[i],".Low[n.na] <- ",
-							   		"min(data$",data.names[i],".Open[n.na], data$",data.names[i],".Close[n.na]) ; ",
-							   "n.na <- which(is.na(data$",data.names[i],".Volume)) ; ",
-							   "data$",data.names[i],".Volume[n.na] <- 0",
-							   sep = "")
+			temp.text <- paste("data$",data.names[i],".temp <- data$",data.names[i],".Open ; ",
+				"data$",data.names[i],".Open[is.na(data$",data.names[i],".Open)] <- ",
+				"na.locf(coredata(data$",data.names[i],".Close))[is.na(data$",data.names[i],".Open)] ; ",
+				"data$",data.names[i],".Close[is.na(data$",data.names[i],".Close)] <- ",
+				"rev(na.locf(rev(coredata(data$",data.names[i],".temp))))[is.na(data$",data.names[i],".Close)] ; ",
+				"data$",data.names[i],".High[is.na(data$",data.names[i],".High)] <- ",
+					"ifelse(data$",data.names[i],".Close[is.na(data$",data.names[i],".High)] > ",
+						"data$",data.names[i],".Open[is.na(data$",data.names[i],".High)],",
+						"data$",data.names[i],".Close[is.na(data$",data.names[i],".High)],",
+						"data$",data.names[i],".Open[is.na(data$",data.names[i],".High)]) ; ",
+				"data$",data.names[i],".Low[is.na(data$",data.names[i],".Low)] <- ",
+					"ifelse(data$",data.names[i],".Close[is.na(data$",data.names[i],".Low)] >",
+						"data$",data.names[i],".Open[is.na(data$",data.names[i],".Low)],",
+						"data$",data.names[i],".Open[is.na(data$",data.names[i],".Low)],",
+						"data$",data.names[i],".Close[is.na(data$",data.names[i],".Low)]) ; ",
+				"data$",data.names[i],".Volume[is.na(data$",data.names[i],".Volume)] <- 0 ; ",
+				"data$",data.names[i],".temp <- NULL", 
+				sep = "")
 			eval(parse(text = temp.text))
 		}
-	' t$Open <- ifelse(is.na(t$Open), ifelse(is.na(lag(t$Close)), lag(t$Open), lag(t$Close)), t$Open)
-	 fillInTheBlanks <- function(S) {
-  L <- !is.na(S)
-  c(S[L][1], S[L])[cumsum(L)+1]'
 	}
 	if (type == "appr") {
 		# аппроксимация NA
