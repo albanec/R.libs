@@ -96,13 +96,13 @@ FindMax_DistancePoint <- function (y, x=1:len(y)) {
 	return(dist)
 }	
 #
-Save_XTStoCSV <- function (data, name, period = FALSE, tframe = FALSE) {
+Save_XTStoCSV <- function (data, filename, period = FALSE, tframe = FALSE) {
 	# ----------
 	# Общее описание:
 	# 	функция записи XTS рядов в .csv файл 	
 	# Входные данные:
 	# 	data - нужный xts
-	#	name - название файла
+	#	filename - название файла (без расширения .csv)
 	#	period - указать в название период свечей
 	#	tframe - указать в названии номер тайм-фрейма во Framelist'e
 	# Выходные данные:
@@ -111,7 +111,6 @@ Save_XTStoCSV <- function (data, name, period = FALSE, tframe = FALSE) {
 		require(zoo)
 	# ----------	
 	#
-	filename <- name
 	if (period !=  FALSE) {
 		filename <- paste(filename, period, sep = ".")
 	}
@@ -120,15 +119,15 @@ Save_XTStoCSV <- function (data, name, period = FALSE, tframe = FALSE) {
 	}
 	filename <- paste(filename, "csv", sep = ".")
 	write.zoo(data, file = filename, sep = ",")
-	cat("Save OK : ", "\t", filename, "\n")
+	cat("Save OK :  ", filename, "\n")
 }
 #
-Read_CSVtoXTS <- function (name, period = FALSE, tframe = FALSE) {
+Read_CSVtoXTS <- function (filename, period = FALSE, tframe = FALSE) {
 	# ----------
 	# Общее описание:
 	# 	функция чтения XTS рядов из .csv файлов
 	# Входные данные:
-	#	name - название файла
+	#	filename - название файла (без расширения .csv)
 	#	period - указать в название период свечей
 	#	tframe - указать в названии номер тайм-фрейма во FrameList'е
 	# Выходные данные:
@@ -137,9 +136,8 @@ Read_CSVtoXTS <- function (name, period = FALSE, tframe = FALSE) {
 		require(xts)
 	# ----------
 	# 
-	filename <- name
 	if (period !=  FALSE) {
-		filename <- paste(name, period, sep = ".")
+		filename <- paste(filename, period, sep = ".")
 	}
 	if (tframe !=  FALSE) {
 		filename <- paste(filename, tframe, sep = ".")
@@ -147,7 +145,7 @@ Read_CSVtoXTS <- function (name, period = FALSE, tframe = FALSE) {
 	filename <- paste(filename, "csv", sep = ".")
 	data <- read.csv(file = filename)
 	data <- xts(data[,-1], order.by = as.POSIXct(data$Index))
-	cat("Read OK : ", "\t", filename, "\n")
+	cat("Read OK :  ", filename, "\n")
 	return(data)
 }
 #
@@ -166,28 +164,25 @@ Read_CSVtoDF <- function (file.path, sep = ";") {
 	return (file)
 }
 #
-GetData_Ticker <- function (ticker, from.date, to.date = Sys.Date(), period = "15min", rename = FALSE) {
+GetData_Ticker_One <- function (ticker, from.date, to.date = Sys.Date(), period = "15min", rename = FALSE) {
 	# ----------
 	# Общее описание:
-	# 	функция загрузки тикера с Финам + переименовывает столбцы
+	# 	функция загрузки тикера с Финам + (если нужно) переименовывает столбцы
 	# Входные данные:
-	# 	ticker - нужный тикер
-	#	from.date - дата-старт
-	#	to.date - дата-стоп
-	#	period - период свечей
-	# rename - нужно ли переименовывать
+	# 	ticker: нужный тикер
+	#	from.date: дата-старт / to.date: дата-стоп  (даты в формате "2015-01-01")
+	#	period: период свечей
+	# rename: (T/F) нужно ли переименовывать
 	# Выходные данные:
 	#	xts массив "data"
 	# Зависимости:
 	require(rusquant) 	
 	# ----------
 	#
-	# загрузка данных
-	# дата в формате "2015-01-01"
-	cat("\t", "Download Source Data...", "\n")
+	cat("INFO(GetData_Ticker_One):  ", "Download Source Data...", "\n")
 	data <- getSymbols(ticker, from = from.date, to = to.date, period = period, src = "Finam", auto.assign = FALSE)
 	if (is.xts(data) !=  TRUE) {
-		stop(paste("Downloading error: ticker ", ticker, " not present!!!", sep = ""))
+		stop(paste("ERROR(GetData_Ticker_One):  ticker ", ticker, " not present!!!", sep = ""))
 	}
 	if (rename ==TRUE) {
 		names(data) <- c("Open" , "High" , "Low" , "Close" , "Volume")	
@@ -195,30 +190,31 @@ GetData_Ticker <- function (ticker, from.date, to.date = Sys.Date(), period = "1
 	return(data)
 }
 #
-GetData_TickerList <- function(ticker.list = "TickerList.csv", from.date, to.date, period, maxattempts = 5) {
+GetData_Ticker_Set <- function(tickers = "TickerList.csv", from.date, to.date, period, 
+							   	   maxattempts = 5, rename = FALSE) {
 	# ----------
 	# Общее описание:
-	# 	функция загрузки листа котировок за период from/to.date и сохранения в файлы
+	# 	функция загрузки списка котировок за период from/to.date + сохранения в файлы
 	# Входные данные:
-	# ticker.list: .csv или вектор с тикерами
-	# from.date/to.date: даты начала/конца
-	# period: вектор периодов (или единичное значение)
+	# tickers: .csv или вектор с тикерами
+	# from.date/to.date: даты начала/конца (даты в формате "2015-01-01")
+	# period: вектор периодов (или единичное значение; из вектора будет выбрано min значение)
 	# maxattempts: количество попыток загрузки 
 	# Выходные данные:
 	#	.csv файлы
-	# листы: либо склееные данные по всем котировкам, либо с отдельными котировками
+	# data.list: лист с XTS по котировкам
 	# Зависимости:
 	require(rusquant)
 	# ----------
 	#
-	cat("Info: Current work.dir:", getwd())	
-	if (grepl(".csv", ticker.list) == TRUE) {
-		cat("Loading TickerList: ", ticker.list, "\n")
-		ticker.list <- read.csv(ticker.list, header = F, stringsAsFactors = F)
-		ticker.list <- ticker.list[, 1]	 
-		cat("Loading TickerList: OK", "\n") 
+	cat("INFO(GetData_Ticker_Set):  Current work.dir:", getwd())	
+	if (all(grepl(".csv", tickers)) == TRUE) {
+		cat("INFO(GetData_Ticker_Set):  Loading Tickers: ", tickers, "\n")
+		tickers <- read.csv(tickers, header = F, stringsAsFactors = F)
+		tickers <- tickers[, 1]	 
+		cat("INFO(GetData_Ticker_Set):  Loading Tickers: OK", "\n") 
 	} 
-	n.ticker <- length(ticker.list)
+	n.ticker <- length(tickers)
 	n.period <- length(period)
 	# если фреймы - вектор, то 
 	period.min <- period[1]
@@ -226,90 +222,92 @@ GetData_TickerList <- function(ticker.list = "TickerList.csv", from.date, to.dat
 	for (i in 1:n.ticker) {
 		# цикл загрузки с max количеством попыток
 		for (t in 1:maxattempts) {
-			cat("(", i , "/" , n.ticker, ")", "Downloading: ", ticker.list[i], "\t Attempt: ", t , "/", 
-				maxattempts, "\n")
-			data <- GetData_Ticker(ticker = ticker.list[i], from.date = from.date, to.date = to.date, 
+			cat("INFO(GetData_Ticker_Set):  (", i , "/" , n.ticker, ")", 
+				"Downloading: ", tickers[i], "  Attempt: ", t , "/", maxattempts, "\n")
+			data <- GetData_Ticker_One(ticker = tickers[i], from.date = from.date, to.date = to.date, 
 								   period = period.min, rename = rename)
 			if (exists("data")) {
-				cat( "(", i , "/" , n.ticker, ")", "Downloading ", ticker.list[i] , "\t complete", "\n")
+				cat( "INFO(GetData_Ticker_Set):  (", i , "/" , n.ticker, ")", "
+					Downloading ", tickers[i] , "  complete", "\n")
   				break
 			}
 		}
 		data <- na.omit(data)
-   		data.name <- as.character(ticker.list[i])
-		Save_XTStoCSV(data = data, name = data.name, period = period.min)
+   		data.name <- as.character(tickers[i])
+		Save_XTStoCSV(data = data, filename = data.name, period = period.min)
    		assign(paste(data.name, period.min, sep="."), data)
    		remove(data); remove(data.name)
 	}
-	ticker.list <- sapply(ticker.list, function(x) { paste(x, period.min, sep = ".") })
-	ticker.list <- paste(ticker.list, collapse = ",")
+	tickers <- sapply(tickers, function(x) { paste(x, period.min, sep = ".") })
+	tickers.temp <- paste(tickers, collapse = ",")
 
-	temp.text <- paste("return(list(", ticker.list,"))", sep = "")
+	temp.text <- paste("data.list <- list(", tickers.temp,") ;",
+					   "names(data.list) <-  tickers",  
+					   sep = "")
 	eval(parse(text = temp.text))
-	#return(full.data)
+	return(data.list)
 }
 #
 CalcReturn <- function(data, type = "SR") {
+	# ----------
+	# Общее описание:
+	# 	функция вычисляет return'ы
+	# Входные данные:
+	# data: $ряд 
+	# type: тип return'a (R/SR/LR)
+	# Выходные данные:
+	#	data: $ряд с return'ами 
+	# Зависимости:
+	require(quantmod)
+	# ----------
+	if (type == "R") {
+		data <- data - lag(data)
+	}
 	if (type == "SR") {
 		data <- Delt(data, type = "arithmetic")
-		data[1] <- 0
 	} 
 	if (type = "LR") {
-		data <- Delt(data, type = "log")
-		data[1] <- 0		
+		data <- Delt(data, type = "log")		
 	}
+	data[1] <- 0
 	return(data)
 }
 #
-ExpandData_Period <- function(data.list, frame.list, period) {
+ExpandData_toPeriod <- function(data.list, frames, period) {
 	# ----------
 	# Общее описание:
 	# 	функция выделения данных по tf и временному интервалу
 	# Входные данные:
-	#	ticker.list - файл, сожержащий список нужных тикеров 
-	# 	frame.list - файл, сожержащий список нужных временных интервалов	
-	# 		даты должны быть записаны в виде '2014-12-01/2014-12-31'	
-	# 	period - вектор, содержащий нужные периоды свечей (в порядке возрастания); или один период
+	#	data.list: лист с котировками в XTS
+	# 	frames: файл (или вектор), сожержащий список нужных временных интервалов (в виде '2014-12-01/2014-12-31')	 		
+	# 	period: вектор, содержащий нужные периоды свечей (в порядке возрастания); или один период
 	# Выходные данные:
-	#	выдает .csv
+	#	выдает несколько .csv, расширенных по периодам
 	# ----------
 	# 
-	#cat( "Start DataExpand by FrameList & Period :", "\n")
-	#n.period <- length(period)
-	#period.min <- period[1]
-	#cat("Loading TickerList: ", ticker.list, "\n")
-	#ticker.list <- names(data)
-	#ticker.list <- sub(paste(".", period.min, sep = ""), "", ticker.list) 
-	#cat("Loading TickerList: OK", "\n")
-	#n.ticker <- length(ticker.list)
-	#
-	if (grepl(".csv", frame.list) == TRUE) {
-		cat("Loading FrameList: ", frame.list, "\n")
-		frame.list <- read.csv(frame.list, header = F, stringsAsFactors = F)
-		frame.list <- frame.list[, 1]	  
-		cat("Loading FrameList: OK", "\n")
+	if (any(grepl(".csv", frames)) == TRUE) {
+		cat("INFO(ExpandData_toPeriod):  Loading FrameList: ", frames, "\n")
+		frames <- read.csv(frames, header = F, stringsAsFactors = F)
+		frames <- frames[, 1]	  
+		cat("(ExpandData_toPeriod):  Loading FrameList: OK", "\n")
 	} 
-	n.frame <- length(frame.list)
+	n.frame <- length(frames)
 	n.ticker <- length(data.list) 
 	n.period <- length(period)
 	period.min <- period[1]
 	for (i in 1:n.ticker) {
-		#'data.name <- as.character(ticker.list[i])
-	#		cat( "Processing StocksData:", "\t", data.name, "\n")
-	#		data.source <- Read_CSVtoXTS(name = data.name, period = period[1], tframe = FALSE)
-	#		cat ("Expand...", "\t", data.name, "\n")'
 		data <- data.list[[i]]
 		data.name <- names(data)[grep("Close", names(data))]
 		data.name <- sub(".Close", "", data.name)
-		cat( "Processing StocksData:", "\t", data.name, "\n")
+		cat( "INFO(ExpandData_toPeriod):  Processing Data:  ", data.name, "\n")
 		for (n in 1:n.frame) {
 			# цикл time.frame'а
-			cat ("Expand...", "\t", data.name, "for TimeFrame ", frame.list[n], "\n")
-			window <- frame.list[n] 
+			cat ("INFO(ExpandData_toPeriod):  Expand...  ", data.name, "for TimeFrame ", frames[n], "\n")
+			window <- frames[n] 
 			for (t in 1:n.period) {
 				# цикл периода
 				p <- period[t]
-				cat ("Expand...", "\t", data.name, "for Period ", p, "\n")
+				cat ("INFO(ExpandData_toPeriod):  Expand...  ", data.name, "for Period ", p, "\n")
 				if (p == "5min") { 
 					p1 <- "mins"
 					k <- 5
@@ -337,39 +335,32 @@ ExpandData_Period <- function(data.list, frame.list, period) {
 				data.temp <- data[window]
 				ends <- endpoints(data.temp, p1, k)
 				data.temp <- data.temp[ends]
-				Save_XTStoCSV(data = data.temp, name = data.name, period = p, tframe = n)
+				Save_XTStoCSV(data = data.temp, filename = data.name, period = p, tframe = n)
 			}
 			remove(data.temp); remove(data)
 		}
 	}
-	cat( "Expand StocksData...", "\t", "complete", "\n")
 }
 #
-MergeData_InList <- function(data.list) {
+MergeData_fromAlltoOne_forList <- function(data.list, col.name = FALSE) {
 	# ----------
 	# Общее описание:
-	# 	вспомогательная для PCA_DataPreparation()
-	# 	функция объединения данных в один XTS и устранение NA значений
-		# NA можно убрать простым na.locf и аппроксимацией
+	# 	функция объединения данных в один XTS 
 	# Входные данные:
-	#	ticker.list - файл, сожержащий список нужных тикеров 
-	# 	price - тип исследуемых данных 
-	# 	tframe - номер тайм фрейма
-	# 	period - вектор, содержащий нужные периоды свечей (в порядке возрастания); или один период
-	# 	approx - необходимость аппроксимации NA-данных
+	#	data.list: лист, сожержащий XTS нужных тикеров 
+	# col.name: если нужно объединить опред. столбцы, то присвоить название
 	# Выходные данные:
-	#	merged.data - xts ряд объединенных значений (по всему портфелю)
+	#	list(merged.data) - xts ряд объединенных значений (по всем тикерам)
 	# ----------
 	# 
-	n.ticker <- length(data) 
+	n.ticker <- length(data.list) 
 	FirstTime <- TRUE
 	#  чтение и объединение данных
 	for (i in 1:n.ticker) {
 		data <- data.list[[i]]
 		data.name <- names(data)[grep("Close", names(data))]
 		data.name <- sub(".Close", "", data.name)
-		cat( "Processing StocksData:", "\t", data.name, "\n")
-		#data <- Read_CSVtoXTS(name = data.name, period = period, tframe = tframe) 
+		cat("INFO(MergeData_fromAll_toOne):  Processing StocksData:  ", data.name, "\n")
 		if (col.name != FALSE) {
 			col.name <- paste(data.name, col.name, sep = ".")
 			temp.text <- paste("data <- data$", col.name, sep = "")
@@ -382,64 +373,104 @@ MergeData_InList <- function(data.list) {
 			merged.data <- merge(merged.data, data)
 		}
 	}	
-	return(list(merged.data))
+	merged.data <- list(merged.data)
+	names(merged.data) <- c("merged.data")
+	return(merged.data)
 }
 #
-NormData_NA <- function(data, type) {
+NormData_NA_forXTS <- function(data, type="full", filename = FALSE) {
+	# ----------
+	# Общее описание:
+	# функция удаления NA из XTS
+	# Входные данные:
+	# data: XTS, сожержащий нужные данные 
+	# type: (full/locf/approx) способ удаления NA
+	# filename: если нужэно сохранить, то определить название файла
+	# Выходные данные:
+	#	data: XTS ряд, очищенный от NA (по всем тикерам)
+	# ----------
 	# 
-	if (is.list(data) == TRUE) {
-		data <- data[[1]]
-		if (is.xts(data) != TRUE) {
-			stop("Error: Error in source data!!!")
+	if (is.xts(data) != TRUE) {
+		stop("INFO(NormData_NA): Error in source data: DataType != .xts !!!")
+	}
+	if (any(is.na(data)) != TRUE) {
+			cat("INFO(NormData_NA): No NA rows in data", "\n")
+	} else {
+		# нормализация NA-значений
+		if (type == "locf") {
+			# нормализация с пом-ю na.locf
+			data <- na.locf(data)
+		} 
+		if (type == "full") {
+			# нормализация по уровням свечей 
+			data.names <- names(data)[grep("Close", names(data))]
+			data.names <- sub(".Close", "", data.names)
+			for (i in 1:length(data.names)) {
+				temp.text <- paste("data$",data.names[i],".temp <- data$",data.names[i],".Open ; ",				
+					"data$",data.names[i],".Open[is.na(data$",data.names[i],".Open)] <- ",
+					"na.locf(coredata(data$",data.names[i],".Close))[is.na(data$",data.names[i],".Open)] ; ",
+					"data$",data.names[i],".Close[is.na(data$",data.names[i],".Close)] <- ",
+					"rev(na.locf(rev(coredata(data$",data.names[i],".temp))))[is.na(data$",data.names[i],".Close)] ; ",
+					"data$",data.names[i],".High[is.na(data$",data.names[i],".High)] <- ",
+						"ifelse(data$",data.names[i],".Close[is.na(data$",data.names[i],".High)] > ",
+							"data$",data.names[i],".Open[is.na(data$",data.names[i],".High)],",
+							"data$",data.names[i],".Close[is.na(data$",data.names[i],".High)],",
+							"data$",data.names[i],".Open[is.na(data$",data.names[i],".High)]) ; ",
+					"data$",data.names[i],".Low[is.na(data$",data.names[i],".Low)] <- ",
+						"ifelse(data$",data.names[i],".Close[is.na(data$",data.names[i],".Low)] >",
+							"data$",data.names[i],".Open[is.na(data$",data.names[i],".Low)],",
+							"data$",data.names[i],".Open[is.na(data$",data.names[i],".Low)],",
+							"data$",data.names[i],".Close[is.na(data$",data.names[i],".Low)]) ; ",
+					"data$",data.names[i],".Volume[is.na(data$",data.names[i],".Volume)] <- 0 ; ",
+					"data$",data.names[i],".temp <- NULL", 
+					sep = "")
+				eval(parse(text = temp.text))
+			}
 		}
-	}
-	# нормализация NA-значений
-	if (type == "locf") {
-		# нормализация с пом-ю na.locf
-		cat( "Normalize StocksData...", "\t", "without approx", "\n") 
-		data <- na.locf(data)
-	} 
-	if (type == "full") {
-		# нормализация по уровням свечей 
-		cat( "Normalize StocksData...", "\t", "full StocksData", "\n")
-		data.names <- names(data)[grep("Close", names(data))]
-		data.names <- sub(".Close", "", data.names)
-		for (i in 1:length(data.names)) {
-			temp.text <- paste("data$",data.names[i],".temp <- data$",data.names[i],".Open ; ",
-				"data$",data.names[i],".Open[is.na(data$",data.names[i],".Open)] <- ",
-				"na.locf(coredata(data$",data.names[i],".Close))[is.na(data$",data.names[i],".Open)] ; ",
-				"data$",data.names[i],".Close[is.na(data$",data.names[i],".Close)] <- ",
-				"rev(na.locf(rev(coredata(data$",data.names[i],".temp))))[is.na(data$",data.names[i],".Close)] ; ",
-				"data$",data.names[i],".High[is.na(data$",data.names[i],".High)] <- ",
-					"ifelse(data$",data.names[i],".Close[is.na(data$",data.names[i],".High)] > ",
-						"data$",data.names[i],".Open[is.na(data$",data.names[i],".High)],",
-						"data$",data.names[i],".Close[is.na(data$",data.names[i],".High)],",
-						"data$",data.names[i],".Open[is.na(data$",data.names[i],".High)]) ; ",
-				"data$",data.names[i],".Low[is.na(data$",data.names[i],".Low)] <- ",
-					"ifelse(data$",data.names[i],".Close[is.na(data$",data.names[i],".Low)] >",
-						"data$",data.names[i],".Open[is.na(data$",data.names[i],".Low)],",
-						"data$",data.names[i],".Open[is.na(data$",data.names[i],".Low)],",
-						"data$",data.names[i],".Close[is.na(data$",data.names[i],".Low)]) ; ",
-				"data$",data.names[i],".Volume[is.na(data$",data.names[i],".Volume)] <- 0 ; ",
-				"data$",data.names[i],".temp <- NULL", 
-				sep = "")
-			eval(parse(text = temp.text))
+		if (type == "approx") {
+			# аппроксимация NA
+			data <- na.approx(data)
 		}
+		data <- na.omit(data)
 	}
-	if (type == "appr") {
-		# аппроксимация NA
-		cat( "Normalize StocksData...", "\t", "with approx", "\n") 
-		data <- na.approx(data)
-	}
-	data <- na.omit(data)
-	cat( "Save Data...", "\n") 
-	filename <- paste("MergedData", ticker.list, price, sep = ".")
-	if (save == TRUE) {
-		Save_XTStoCSV(data = merged.data, name = filename, period = period, tframe = tframe)	
+	if (filename != FALSE) {
+		Save_XTStoCSV(data = merged.data, filename = filename)	
 	}
 	return(data)
 }
-	
+#
+AddData_FuturesSpecs_forXTS <- function (data, from.date, to.date) {
+	# ----------
+	# Общее описание:
+	# функция добавляет параметры инструментов (для фьючерсов: размеры ГО и курс USDRUB для пересчёта к RUB)
+	# Входные данные:
+	# data: XTS, сожержащий нужные данные 
+	# from.date / to.date
+	# Выходные данные:
+	#	data: XTS ряд, с добавленными параметрами
+	# ----------
+	# 
+	# загрузка ГО
+	data.names <- names(data)[grep("Close", names(data))]
+	data.names <- sub(".Close", "", data.names)
+	for (i in 1:length(data.names)) {
+		temp.text <- paste("temp.data <- Read_CSVtoXTS(filename = \"",data.names[i],".IM\") ; ",
+						   "data$",data.names[i],".IM <- temp.data ; ",
+						   "remove(temp.data) ; ",
+						   "data$",data.names[i],".IM <- na.locf(data$",data.names[i],".IM) ; ",
+						   sep="")
+		eval(parse(text = temp.text))
+	}
+	remove(temp.text); remove(data.names)
+	# загрузка USDRUB
+	data.USDRUB <- GetData_Ticker_One(ticker="USD000UTSTOM", from.date, to.date, period = "day", rename = TRUE)
+	data$USDRUB <- data.USDRUB$Close
+	remove(data.USDRUB)
+	data$USDRUB <- na.locf(data$USDRUB)
+	# очистка от NA (на данном этапе na.omit полезным данным не навредит)
+	data <- na.omit(data)
+	return(data)
+}
 	# выгрузка данных
-	#filename <- paste("MergedData", ticker.list, sep = ".")
-	#data <- Read_CSVtoXTS (name = filename, period, tframe)
+	#filename <- paste("MergedData", tickers, sep = ".")
+	#data <- Read_CSVtoXTS (filename = filename)
