@@ -253,7 +253,7 @@ STR_TestStrategy <- function(data.source.list, tickers = c("SPFB.SI", "SPFB.RTS"
 	cat("Calculate $sig and $pos...", "\n")
 	data$sig <- ifelse((data$sma < data.source.list[[1]]$SPFB.SI.Close), 1, 
 					   ifelse(data$sma > data.source.list[[1]]$SPFB.SI.Close, -1, 0))
-	data[1:(sma.per-1), ] <- 0
+	data <- na.omit(data)
 	# позиции зависят только от SMA
 	data$pos <- lag(data$sig)
 	data$pos[1] <- 0
@@ -264,12 +264,11 @@ STR_TestStrategy <- function(data.source.list, tickers = c("SPFB.SI", "SPFB.RTS"
 							) & (data$sig == data$pos), 
 							1, 0)
 	data$pos.drop <- lag(data$sig.drop)
-	# сигналы на набор позиций 
-	data$sig.add <- as.xts(rollapply(data = data$sig, FUN = function(x) ifelse(cumsum(data$sig) )
-						   width = add.window, align = "right"))
-	as.xts(rollapply(data = zoo(indicator), FUN = FUN, width = 100, align = "right"))
-
-
+	data$sig.num <- cumsum(abs(sign(diff(data$sig))))
+	sig.num.vector <- seq(1:max(data$sig.num))
+	data$ticks <- NA
+	#data$ticks[which(data$num == sig.num.vector)] <- abs(data$sig[which(data$num == sig.num.vector)])
+	data$ticks <- sapply(sig.num.vector, function(x, data$sig.num) {cumsum(abs(sign(which(data$sig.num == x)))})
 
 
 	# вывод транзакций 
