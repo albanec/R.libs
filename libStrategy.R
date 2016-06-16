@@ -2,7 +2,7 @@
 # описания стратегий и вспомагательных функций
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #
-STR_Convert.SigToState <- function (x) {
+STR_Convert_SigToState <- function (x) {
 	# ----------
 	# Общее описание:
 	# 	функция для перехода к состояниям (фильтрация сигналов)
@@ -21,7 +21,7 @@ STR_Convert.SigToState <- function (x) {
 	return (x$y)
 }
 #
-STR_CrossLine.ForVector <- function (x1,x2) {
+STR_CrossLine_ForVector <- function (x1,x2) {
 	# ----------
 	# Общее описание:
 	# 	функция вычисляет пересечения графиков векторов
@@ -39,7 +39,7 @@ STR_CrossLine.ForVector <- function (x1,x2) {
 	return (x)
 }
 #
-STR_CrossLine.ForXTS <- function (x1,x2) {
+STR_CrossLine_ForXTS <- function (x1,x2) {
 	# ----------
 	# Общее описание:
 	# 	функция вычисляет пересечения графиков рядов
@@ -57,7 +57,7 @@ STR_CrossLine.ForXTS <- function (x1,x2) {
 	return (x)
 }
 #
-STR_CalcState.Table <- function(data) {
+STR_CalcState_Data <- function(data) {
 	# ----------
   	# Общее описание:
   	# функция для перехода к состояниям (фильтрация сигналов)
@@ -77,7 +77,7 @@ STR_CalcState.Table <- function(data) {
 	return (data$state)
 }
 #
-STR_CalcState.Data <- function (data) {
+STR_CalcState_Table <- function (data) {
 	# ----------
   	# Общее описание:
   	# генерирует таблицу сделок
@@ -88,7 +88,7 @@ STR_CalcState.Data <- function (data) {
   	# Зависимости:
   	require(quantmod) 
 	# ----------
-	data$state <- STR_CalcState.Table(data)
+	data$state <- STR_CalcState_Data(data)
 	state.data <- na.omit(data)
 	return (state.data)
 }
@@ -210,7 +210,7 @@ STR_PSARand2SMA <- function (data, slow.sma, fast.sma, accel.start=0.02, accel.m
 	return(data)
 }		
 #
-STR_NormStock.Price <- function(type = c("Open", "Close"), data, norm.data, tick, tick.price) {
+STR_NormData_Price <- function(type = c("Open", "Close"), data, norm.data, tick, tick.price) {
 	# ----------
     # Общее описание:
     # Функция для расчёта стоимости тиков
@@ -242,35 +242,41 @@ STR_NormStock.Price <- function(type = c("Open", "Close"), data, norm.data, tick
 	return(data)
 }
 #
-STR_TestStrategy <- function(data.list, tickers = c("Si", "Ri", "Br"), ) {
+STR_TestStrategy <- function(data.source.list, tickers = c("SPFB.SI", "SPFB.RTS", "SPFB.BR")) {
 	require(quantmod)
-	# выделяем Si
-	cat("Loading Si Data...", "\n")
-	data <- as.xts(data.list[[1]])
+	# тикер-индикатор: SI
+	# основа для данных стратегии
+	data <- xts()
 	# добавляем индикаторы
-	cat("Calculate SMA with period:", sma.per, "\n")
-	data$sma <- SMA(Cl(data), sma.per)
-	data <- na.omit(data)
+	cat("Calculate SMA with period:  ", sma.per, "\n")
+	data$sma <- SMA(data.source.list[[1]]$SPFB.SI.Close, sma.per)
 	cat("Calculate $sig and $pos...", "\n")
-	data$sig <- ifelse(data$sma < data$Close, 1,
-					   ifelse(data$sma > data$Close, -1, 0))
+	data$sig <- ifelse((data$sma < data.source.list[[1]]$SPFB.SI.Close), 1, 
+					   ifelse(data$sma > data.source.list[[1]]$SPFB.SI.Close, -1, 0))
+	data[1:(sma.per-1), ] <- 0
 	# позиции зависят только от SMA
 	data$pos <- lag(data$sig)
 	data$pos[1] <- 0
-	# вывод транзакций 
-	data$diff.pos <- data$pos - lag(data$pos)
-	# расчет состояний 
-	data$state <- STR_Convert.SigToState(x = data$pos)
-	#data$test <- data$pos - lag(data$pos)
 	# сигналы на сброс позиций (1 для long и -1 для short)
 	cat("Calculate $sig.drop...", "\n")
-	data$sig.drop <- ifelse((((data$sma > data$Low) & (data$sig == 1)) | ((data$sma < data$High) & (data$sig == -1))) &
-						   (data$sig == data$pos), 
-						   1, 0)
-	data$pos.add <- lag(data$sig.add)
+	data$sig.drop <- ifelse((((data$sma > data.source.list[[1]]$SPFB.SI.Low) & (data$sig == 1)) | 
+							 ((data$sma < data.source.list[[1]]$SPFB.SI.High) & (data$sig == -1))
+							) & (data$sig == data$pos), 
+							1, 0)
+	data$pos.drop <- lag(data$sig.drop)
 	# сигналы на набор позиций 
 	data$sig.add <- as.xts(rollapply(data = data$sig, FUN = function(x) ifelse(cumsum(data$sig) )
 						   width = add.window, align = "right"))
 	as.xts(rollapply(data = zoo(indicator), FUN = FUN, width = 100, align = "right"))
+
+
+
+
+	# вывод транзакций 
+	data$diff.pos <- data$pos - lag(data$pos)
+	# расчет состояний 
+	data$state <- STR_Convert_SigToState(x = data$pos)
+	#data$test <- data$pos - lag(data$pos)
+	
 	
 }

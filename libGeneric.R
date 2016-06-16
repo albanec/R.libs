@@ -462,7 +462,7 @@ AddData_FuturesSpecs_forXTS <- function (data, from.date, to.date) {
 		eval(parse(text = temp.text))
 	}
 	remove(temp.text); remove(data.names)
-	# загрузка USDRUB
+	# загрузка котировок USDRUB_TOM
 	data.USDRUB <- GetData_Ticker_One(ticker="USD000UTSTOM", from.date, to.date, period = "day", rename = TRUE)
 	data$USDRUB <- data.USDRUB$Close
 	remove(data.USDRUB)
