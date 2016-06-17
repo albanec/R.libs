@@ -93,29 +93,27 @@ STR_CalcState_Table <- function (data) {
 	return (state.data)
 }
 #
-STR_CalcReturns <- function (data, SR=FALSE, LR=FALSE) {
+STR_CalcReturn_inXTS <- function(data, type = "simret") {
 	# ----------
-  	# Общее описание:
-  	#   функция расчета доходностей
- 	# Входные данные:
- 	#   data: котировки
-  	# Выходные данные:
-  	#   data: таблица котировок с рассчитанными доходностями
-  	# Зависимости:
-  	require(quantmod) 
-  	# ----------
-	cat("Calculating Returns: ")
-	if (SR == TRUE) {
-		cat(" SR")
-		data$SR <- Delt(data$Close, type="arithmetic")		
+	# Общее описание:
+	# 	функция вычисляет return'ы по всему портфелю внутри XTS
+	# Входные данные:
+	# data: XTS 
+	# type: тип return'a (ret/simret/logret)
+	# Выходные данные:
+	#	data: XTS + return'ы по каждому инструменту 
+	# Зависимости:
+	require(quantmod)
+	# ----------
+	data.names <- names(data)[grep("Close", names(data))]
+	data.names <- sub(".Close", "", data.names)
+	for (i in 1:length(data.names)) {
+		temp.text <- paste("data$",data.names[i],".",type," <- ",
+						   "CalcReturn(data$",data.names[i],".Close, type = \"",type,"\")", 
+						   sep="")
+		eval(parse(text = temp.text))
 	}
-	if (LR == TRUE) {
-		cat(" LR")
-		data$LR <- Delt(data$Close, type="log")
-	}
-	cat("\n")
-	data <- na.omit(data)
-	return (data)
+	return(data)
 }
 # 
 STR_CalcEquity <- function (data, s0 = 0, abs = FALSE, SR = FALSE, LR = FALSE, reinvest = TRUE, state = FALSE) {
@@ -242,7 +240,8 @@ STR_NormData_Price <- function(type = c("Open", "Close"), data, norm.data, tick,
 	return(data)
 }
 #
-STR_TestStrategy <- function(data.source.list, tickers = c("SPFB.SI", "SPFB.RTS", "SPFB.BR")) {
+STR_TestStrategy <- function(data.source.list, tickers = c("SPFB.SI", "SPFB.RTS", "SPFB.BR",
+							 sma.per, add.per)) {
 	require(quantmod)
 	# тикер-индикатор: SI
 	# основа для данных стратегии
@@ -257,20 +256,50 @@ STR_TestStrategy <- function(data.source.list, tickers = c("SPFB.SI", "SPFB.RTS"
 	# позиции зависят только от SMA
 	data$pos <- lag(data$sig)
 	data$pos[1] <- 0
-	# сигналы на сброс позиций (1 для long и -1 для short)
+	# сигналы на сброс позиций (1)
 	cat("Calculate $sig.drop...", "\n")
 	data$sig.drop <- ifelse((((data$sma > data.source.list[[1]]$SPFB.SI.Low) & (data$sig == 1)) | 
 							 ((data$sma < data.source.list[[1]]$SPFB.SI.High) & (data$sig == -1))
 							) & (data$sig == data$pos), 
 							1, 0)
-	data$pos.drop <- lag(data$sig.drop)
-	data$sig.num <- cumsum(abs(sign(diff(data$sig))))
-	sig.num.vector <- seq(1:max(data$sig.num))
-	data$ticks <- NA
-	#data$ticks[which(data$num == sig.num.vector)] <- abs(data$sig[which(data$num == sig.num.vector)])
-	data$ticks <- sapply(sig.num.vector, function(x, data$sig.num) {cumsum(abs(sign(which(data$sig.num == x)))})
+	data$diff.sig <- diff(data$sig)
+	data$diff.sig[1] <- data$sig[1]
+	data$temp.num <- cumsum(abs(sign(data$diff.sig)))
+	temp.num.vector <- seq(1:max(data$temp.num))
+	# расчет сигналов на добор позиций (1)
+		# нумерация тиков внутри позиций/сделок
+	data.temp <- list()
+	data.temp <- sapply(temp.num.vector, 
+						function(x, y) {
+							xts(cumsum(abs(sign(which(data$temp.num == x)))), 
+							order.by = index(data$temp.num[data$temp.num == x]))
+						})
+	data$sig.ticks <- NA
+	data$sig.ticks <- MergeData_inList_byRow(data.temp)
+	data$pos.num <- lag(data$temp.num)
+		data$pos.num[1] <- 0
+	data$pos.ticks <- lag(data$sig.ticks)
+		data$pos.ticks[1] <- 0
+	 
+	# удаляем мусор
+	remove(temp.num.vector); remove(data.temp); data$temp.num <- NULL
+	# нумерация сигналов на расширение позиций 
+	data$temp.num <- data$sig.ticks %/% add.per
+	# выделение сигналов
+	data$sig.add <- sign(data$temp.num) * abs(sign(diff(data$temp.num)))
+		data$sig.add[1] <- 0
+	data$sig.add.num <- data$temp.num * abs(sign(diff(data$temp.num)))
+		data$sig.add.num[1] <- 0
+	data$pos.add <- lag(data$sig.add)
+		data$pos.add[1] <- 0
+	data$pos.add.num <- lag(data$sig.add.num)
+		data$pos.add.num[1] <- 0
+data$pos.drop <- lag(data$sig.drop)
 
-
+1	##
+	data$pos.add[data$pos.add == data$pos.drop] <- 0
+	data$pos.drop[data$pos.add == data$pos.drop] <- 0
+	##
 	# вывод транзакций 
 	data$diff.pos <- data$pos - lag(data$pos)
 	# расчет состояний 

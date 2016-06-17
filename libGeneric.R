@@ -248,25 +248,25 @@ GetData_Ticker_Set <- function(tickers = "TickerList.csv", from.date, to.date, p
 	return(data.list)
 }
 #
-CalcReturn <- function(data, type = "SR") {
+CalcReturn <- function(data, type = "simret") {
 	# ----------
 	# Общее описание:
 	# 	функция вычисляет return'ы
 	# Входные данные:
 	# data: $ряд 
-	# type: тип return'a (R/SR/LR)
+	# type: тип return'a (ret/simret/logret)
 	# Выходные данные:
 	#	data: $ряд с return'ами 
 	# Зависимости:
 	require(quantmod)
 	# ----------
-	if (type == "R") {
+	if (type == "ret") {
 		data <- data - lag(data)
 	}
-	if (type == "SR") {
+	if (type == "simret") {
 		data <- Delt(data, type = "arithmetic")
 	} 
-	if (type = "LR") {
+	if (type == "logret") {
 		data <- Delt(data, type = "log")		
 	}
 	data[1] <- 0
@@ -342,7 +342,7 @@ ExpandData_toPeriod <- function(data.list, frames, period) {
 	}
 }
 #
-MergeData_fromAlltoOne_forList <- function(data.list, col.name = FALSE) {
+MergeData_inList_byCol <- function(data.list, col.name = FALSE) {
 	# ----------
 	# Общее описание:
 	# 	функция объединения данных в один XTS 
@@ -376,6 +376,20 @@ MergeData_fromAlltoOne_forList <- function(data.list, col.name = FALSE) {
 	merged.data <- list(merged.data)
 	names(merged.data) <- c("merged.data")
 	return(merged.data)
+}
+#
+MergeData_inList_byRow <- function(data.list) {
+	while(length(data.list) > 1) {
+        idxdata.list <- seq(from=1, to=length(data.list), by=2)
+        data.list <- lapply(idxdata.list, 
+        					function(i) {
+            					if(i == length(data.list)) { 
+            						return(data.list[[i]]) 
+            					}
+            					return(rbind(data.list[[i]], data.list[[i+1]]))
+        					})
+    }
+	return(data.list[[1]])
 }
 #
 NormData_NA_forXTS <- function(data, type="full", filename = FALSE) {
@@ -439,7 +453,7 @@ NormData_NA_forXTS <- function(data, type="full", filename = FALSE) {
 	return(data)
 }
 #
-AddData_FuturesSpecs_forXTS <- function (data, from.date, to.date) {
+AddData_FuturesSpecs_forXTS <- function (data, from.date, to.date, im.wd) {
 	# ----------
 	# Общее описание:
 	# функция добавляет параметры инструментов (для фьючерсов: размеры ГО и курс USDRUB для пересчёта к RUB)
@@ -453,6 +467,7 @@ AddData_FuturesSpecs_forXTS <- function (data, from.date, to.date) {
 	# загрузка ГО
 	data.names <- names(data)[grep("Close", names(data))]
 	data.names <- sub(".Close", "", data.names)
+	setwd(im.wd) 
 	for (i in 1:length(data.names)) {
 		temp.text <- paste("temp.data <- Read_CSVtoXTS(filename = \"",data.names[i],".IM\") ; ",
 						   "data$",data.names[i],".IM <- temp.data ; ",
@@ -461,7 +476,7 @@ AddData_FuturesSpecs_forXTS <- function (data, from.date, to.date) {
 						   sep="")
 		eval(parse(text = temp.text))
 	}
-	remove(temp.text); remove(data.names)
+	remove(temp.text); remove(data.names); 
 	# загрузка котировок USDRUB_TOM
 	data.USDRUB <- GetData_Ticker_One(ticker="USD000UTSTOM", from.date, to.date, period = "day", rename = TRUE)
 	data$USDRUB <- data.USDRUB$Close
