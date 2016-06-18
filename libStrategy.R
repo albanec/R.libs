@@ -208,34 +208,30 @@ STR_PSARand2SMA <- function (data, slow.sma, fast.sma, accel.start=0.02, accel.m
 	return(data)
 }		
 #
-STR_NormData_Price <- function(type = c("Open", "Close"), data, norm.data, tick, tick.price) {
+STR_NormData_EquityPrice_Col <- function(data, usdrub, tick.type, tick.price, convert.to) {
 	# ----------
     # Общее описание:
     # Функция для расчёта стоимости тиков
     # Входные данные:
-    # type: вектор типов данных
     # data: данные котировок
     # norm.data: данные USDRUB_TOM
-    # tick: USD/RUB 
+    # tick.type: USD/RUB 
     # tick.price: стоимость одного тика
     # Выходные данные:
     # data: основной xts 
 	# ----------
-	for (i in 1:length(type)) {
-		temp.col.name <- paste("data$", type[i])
-		temp.norm.col.name <- paste("data.norm$", type[i], sep = "")
-		if (tick == "USD") {
-			temp.text <- paste(temp.col.name, ".usd", "<-", temp.col.name, "* tick.price", sep = "")
-			eval(parse(text = temp.text)) 
-			temp.text <- paste(temp.col.name, ".rub", "<-", temp.col.name, "* tick.price *",  temp.norm.col.name, 
-							   sep = "")
-			eval(parse(text = temp.text))	
+	if (tick.type == "USD") {
+		if (convert.to == "USD") {
+			data <- data * tick.price	
 		} else {
-			temp.text <- paste(temp.col.name, ".usd", "<-", temp.col.name, "/", temp.norm.col.name, sep = "")
-			eval(parse(text = temp.text)) 
-			temp.text <- paste(temp.col.name, ".rub", "<-", temp.col.name, "* tick.price", sep = "")
-			eval(parse(text = temp.text))	
+			data <- data * tick.price * usdrub 
 		}
+	} else {
+		if (convert.to == "USD") {
+			data <- data / usdrub
+		} else {
+			data <- data * tick.price	
+		}	
 	}
 	return(data)
 }
