@@ -328,11 +328,14 @@ STR_TestStrategy <- function(data.source, tickers = c("SPFB.SI", "SPFB.RTS", "SP
 
     #
     # скелет таблицы сделок
+    data$state <- STR_CalcState_Data(data)
+    data.state <- data.state[-1, ]
     data$state[data$pos.add != 0 | data$pos.drop != 0] <- data$pos[data$pos.add != 0 | data$pos.drop != 0]
     data.state <- na.omit(data)
     # добавление нужных столбцов
     data.state$im.balance <- NA
     data.state$equity <- NA
+    data.state$comiss.sum <- NA
     temp.text <- c()
     for (i in 1:length(data.names)) {
         temp.text <- paste("data.state$",data.names[i],".ret <- NA ; ",
@@ -343,20 +346,26 @@ STR_TestStrategy <- function(data.source, tickers = c("SPFB.SI", "SPFB.RTS", "SP
                            "data.state$",data.names[i],".n <- NA ; ",
                            "data.state$",data.names[i],".Open <- NA ; ",
                            "data.state$",data.names[i],".Close <- NA ; ",
+                           "data.state$",data.names[i],".comiss <- NA ; "
                            sep = "")
         eval(parse(text = temp.text))
     }
     #
-    data.state$n.sum[1] <- first(data$n.sum[data$n.sum != 0])
-    data.state$im.balance[1] <- coredata(data.state$n.sum[1]) * data.source$IM.sum[first(data$balance != 0)]
-    data.state$balance[1] <- coredata(data$balance[first(data$balance != 0)]) - coredata(data.state$im.balance[1])
-    #
     # цикл расчёта
-    FirstTime <- TRUE
     for (i in 1:nrow(data.state)) {
-        if (FirstTime == TRUE) {
-            
+        if (i == 1) {
+            data.state$n.sum[1] <- first(data$n.sum[data$n.sum != 0])
+            data.state$im.balance[1] <- coredata(data.state$n.sum[1]) * data.source$IM.sum[first(data$balance != 0)]
+            data.state$balance[1] <- balance.initial - coredata(data.state$im.balance[1])
+            for (i2 in 1:length(data.names)) {
+                temp.text <- paste("data.state$",data.names[i2],".comiss[1] <- ",comissions[i2]," ; ",
+                                   "data.state$",data.names[i2],".sleep[1] <- ",sleeps[i2]," ; ",
+                                   "data.state$",data.names[i2],".n <- data.state$n.sum[1]*",portfolio.weights[i2]," ; ",
+                                   "data.state$",data.names[i2],".Open <- ",
+                                   "data.source$",data.names[i2],".Open[index(data.state$",data.names[i2],".margin)]"" ; ",
+            }
         }
+        if ()
     }
     # деньги, зарезервированные под ГО
     
