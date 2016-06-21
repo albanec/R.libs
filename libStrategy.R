@@ -31,11 +31,11 @@ STR_CrossLine_ForVector <- function(x1,x2) {
     #  вектор пересечений
     # ----------
     #
-    x <- diff(x1>x2)
+    x <- diff(x1 > x2)
     x[1] <- 0
-    x[x<0] <- 0
-    x <- as.logical(c(0,x))
-    return (x)
+    x[x < 0] <- 0
+    x <- as.logical(c(0, x))
+    return(x)
 }
 #
 STR_CrossLine_inXTS <- function(x1,x2) {
@@ -49,11 +49,11 @@ STR_CrossLine_inXTS <- function(x1,x2) {
     #  ряд пересечений
     # ----------
     # 
-    x <- diff(x1>x2)
+    x <- diff(x1 > x2)
     x[1] <- 0
-    x[x<0] <- 0
+    x[x < 0] <- 0
     x <- sign(x)
-    return (x)
+    return(x)
 }
 #
 STR_CalcState_Data <- function(data) {
@@ -73,7 +73,7 @@ STR_CalcState_Data <- function(data) {
     data$state <- rep(NA, length(data$pos))
     data$state[ind] <- data$pos[ind]
     data$state[1] <- data$pos[1]
-    return (data$state)
+    return(data$state)
 }
 #
 STR_CalcState_Table <- function(data) {
@@ -89,7 +89,7 @@ STR_CalcState_Table <- function(data) {
     # ----------
     data$state <- STR_CalcState_Data(data)
     state.data <- na.omit(data)
-    return (state.data)
+    return(state.data)
 }
 #
 STR_CalcReturn_inXTS <- function(data, type = "sret") {
@@ -173,7 +173,7 @@ STR_CalcEquity <- function(data, s0 = 0, abs = FALSE, SR = FALSE, LR = FALSE, re
             data$equity <- data$Open[[1]] * (exp(as.numeric(last(data$margin))) - 1)
         #}
     }
-    return (data)
+    return(data)
 }
 #
 STR_CalcProfit <- function(data, s0 = 0, pip, reinvest = TRUE) {
@@ -207,7 +207,7 @@ STR_NormData_Price_inXTS <- function(data, names, convert.to) {
     return(data)    
 }
 #
-STR_PSARand2SMA <- function(data, slow.sma, fast.sma, accel.start=0.02, accel.max=0.2) {
+STR_PSARand2SMA <- function(data, slow.sma, fast.sma, accel.start = 0.02, accel.max = 0.2) {
      require(quantmod) 
     # описание psar.2sma стратегии 
     data$sma <- SMA(Cl(data), slow.sma)
@@ -225,7 +225,7 @@ STR_PSARand2SMA <- function(data, slow.sma, fast.sma, accel.start=0.02, accel.ma
 #
 STR_TestStrategy <- function(data.source, tickers = c("SPFB.SI", "SPFB.RTS", "SPFB.BR"),
                              sma.per, add.per,
-                             k.mm, initial.balance, portfolio.weights = c()) {
+                             k.mm, initial.balance, basket.weights = c()) {
     require(quantmod)
     # тикер-индикатор: SI
     # основа для данных стратегии
@@ -309,23 +309,20 @@ STR_TestStrategy <- function(data.source, tickers = c("SPFB.SI", "SPFB.RTS", "SP
     # вывод транзакций 
     data$action <- data$pos - lag(data$pos)
     data$action[1] <- 0 
-    #
+    ####
     # расчет экономических параметров
-    #
+    ####
     # расчет начальных условий
-    #
     data.names <- names(data.source)[grep(".Close", names(data.source))]
     data.names <- sub(".Close", "", data.names)
     # начальный баланс
-    data$balance <- 0
+    data$balance <- NA
     data$balance[1] <- balance.initial 
     # начальное синтетических портфельных контрактов
-    data$n.sum  <- 0
-    first(data$n.sum[data$pos != 0]) <- round(abs(balance.initial * k.mm / 
-                                                  first(data.source$IM.sum[data$pos != 0])) * runif(1, 0.6, 1.4)) 
-    data$n.sum[index(data$n.sum) < index(first(data$pos != 0))] <- 0
-    #
-
+    data$n  <- NA
+    first(data$n[data$pos != 0]) <- round(abs(balance.initial * k.mm / 
+                                                  first(data.source$IM[data$pos != 0])) * runif(1, 0.6, 1.4)) 
+    data$n[index(data$n) < index(first(data$pos != 0))] <- 0
     #
     # скелет таблицы сделок
     data$state <- STR_CalcState_Data(data)
@@ -335,7 +332,20 @@ STR_TestStrategy <- function(data.source, tickers = c("SPFB.SI", "SPFB.RTS", "SP
     # добавление нужных столбцов
     data.state$im.balance <- NA
     data.state$equity <- NA
-    data.state$comiss.sum <- NA
+    data.state$comiss <- NA
+    data.state$ret <- NA
+    data.state$margin <- NA
+    #
+    data.state$n[1] <- data$n[index(data.state$n[1])]
+    data.state$im.balance[1] <- coredata(data.state$n[1]) * data.source$IM[index(data.state$n[1])]
+    data.state$balance[1] <- balance.initial - coredata(data.state$im.balance[1])
+    data.state$comiss[1] <- basket.comiss
+    #data.state$ret[1] <- data.source$ret[index(data.state$ret[1])]
+    for (i in 2:nrow(data.state)) {
+        index <- index(data.state[i, ])
+        index.lag <- index(data.state[i-1, ])
+        data.state$margin[index] <- data.state$pos[index] * data.state$pos[index]
+    }   
     temp.text <- c()
     for (i in 1:length(data.names)) {
         temp.text <- paste("data.state$",data.names[i],".ret <- NA ; ",
@@ -351,20 +361,26 @@ STR_TestStrategy <- function(data.source, tickers = c("SPFB.SI", "SPFB.RTS", "SP
         eval(parse(text = temp.text))
     }
     #
+    # расчёт количества контрактов на сделках
+    #
     # цикл расчёта
     for (i in 1:nrow(data.state)) {
         if (i == 1) {
-            data.state$n.sum[1] <- first(data$n.sum[data$n.sum != 0])
-            data.state$im.balance[1] <- coredata(data.state$n.sum[1]) * data.source$IM.sum[first(data$balance != 0)]
-            data.state$balance[1] <- balance.initial - coredata(data.state$im.balance[1])
-            for (i2 in 1:length(data.names)) {
-                temp.text <- paste("data.state$",data.names[i2],".comiss[1] <- ",comissions[i2]," ; ",
-                                   "data.state$",data.names[i2],".sleep[1] <- ",sleeps[i2]," ; ",
-                                   "data.state$",data.names[i2],".n <- data.state$n.sum[1]*",portfolio.weights[i2]," ; ",
-                                   "data.state$",data.names[i2],".Open <- ",
-                                   "data.source$",data.names[i2],".Open[index(data.state$",data.names[i2],".margin)]"" ; ",
-            }
+            
+            
+
+
+            for (n in 1:length(data.names)) {
+            temp.text <- paste("temp.index <- index(",data.names[n],") ; ",
+            data.state$",data.names[1],".n <- data.state$n[1] * ",basket.weights[n]," ; ",
+            "data.state$",data.names[n],".comiss[1] <- ",comissions[n]," * data.state$",data.names[1],".n ;",
+            "data.state$",data.names[n],".sleep[1] <- ",sleeps[n]," ; ",
+            "data.state$",data.names[n],".n <- data.state$n[1]*",basket.weights[n]," ; ",
+            "data.state$",data.names[n],".Open <- ",
+            "data.source$",data.names[n],".Open[index(data.state$",data.names[n],".margin)]"" ; ",
         }
+        }
+        
         if ()
     }
     # деньги, зарезервированные под ГО
@@ -376,7 +392,7 @@ STR_TestStrategy <- function(data.source, tickers = c("SPFB.SI", "SPFB.RTS", "SP
 
 
 
-   #     data$diff.pos != 0, round(abs(data$balance * k.mm / data.source$IM.sum[1]) * runif(1, 0.6, 1.4)),
+   #     data$diff.pos != 0, round(abs(data$balance * k.mm / data.source$IM[1]) * runif(1, 0.6, 1.4)),
     #    data$pos != 0 & data$pos.drop == 1, 1,5)
 
     #data$balance <- NA
@@ -389,21 +405,39 @@ STR_TestStrategy <- function(data.source, tickers = c("SPFB.SI", "SPFB.RTS", "SP
     
 
     
-    #data.source$im.sum <- 
-}
+    #data.source$im <- 
+}"
 #
-STR_CalcPortfolio_sumIM_inXTS <- function(data, portfolio.weights) {
+STR_CalcPortfolio_Basket_Comiss_Simple <- function(basket.weights, comissions) {
+    # расчёт суммарной комиссии
+    data <- sum(basket.weights * comissions)
+    return(data)
+}
+STR_CalcPortfolio_Basket_IM_inXTS <- function(data, basket.weights) {
     # расчёт суммарного ГО (согласно весам инструмента в портфеле)
     data.names <- names(data)[grep(".Close", names(data))]
     data.names <- sub(".Close", "", data.names)
     # расчёт суммарного ГО портфеля
     temp.text <- paste("data$", data.names, ".IM", sep = "")
-    temp.text <- paste(temp.text, portfolio.weights, sep = " * ", collapse = " + ")
-    temp.text <- paste("data$IM.sum <- ", temp.text, sep = "") 
+    temp.text <- paste(temp.text, basket.weights, sep = " * ", collapse = " + ")
+    temp.text <- paste("data$IM <- ", temp.text, sep = "") 
     eval(parse(text = temp.text))
     return(data)
 }
-STR_CalcSleeps_inXTS <- function(data.source, data.state) {
+#
+STR_CalcReturn_Basket_Ret_inXTS <- function(data) {
+ # расчёт суммарного ГО (согласно весам инструмента в портфеле)
+    data.names <- names(data)[grep(".Close", names(data))]
+    data.names <- sub(".Close", "", data.names)
+    # расчёт суммарного ГО портфеля
+    temp.text <- paste("data$", data.names, ".ret", sep = "")
+    temp.text <- paste(temp.text, basket.weights, sep = " * ", collapse = " + ")
+    temp.text <- paste("data$ret <- ", temp.text, sep = "") 
+    eval(parse(text = temp.text))
+    return(data)
+}
+#
+STR_CalcSleeps_Basket_inXTS <- function(data.source, data.state) {
     data.names <- names(data)[grep(".Close", names(data))]
     data.names <- sub(".Close", "", data.names)
     for (i in 1:length(data.names)) {

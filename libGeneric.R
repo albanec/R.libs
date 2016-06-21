@@ -1,6 +1,6 @@
 #
-PrepareForWork_Packages <- function (package.list.csv, package.list = FALSE, download = FALSE, 
-                                     update = FALSE) {
+PrepareForWork_Packages <- function(package.list.csv, package.list = FALSE, download = FALSE, 
+                                    update = FALSE) {
     # ----------
     # Общее описание:
     # функция загружает, устанавливает и подключает необходимые пакеты 
@@ -56,10 +56,10 @@ Repeat_Row <- function(x,n) {
     # ----------
     #
     m <- matrix(rep(x,each = n),nrow = n)
-     return(m)
+    return(m)
 }
 #
-Repeat_Col<-function(x,n) {
+Repeat_Col <- function(x,n) {
     # ----------
     # Общее описание:
     #     функция создает матрицу из n столбцов вектора x
@@ -74,7 +74,7 @@ Repeat_Col<-function(x,n) {
     return(m)
 }
 #
-FindMax_DistancePoint <- function (y, x=1:len(y)) {
+FindMax_DistancePoint <- function(y, x=1:len(y)) {
     # ----------
     # Общее описание:
     # Входные данные:
@@ -96,7 +96,7 @@ FindMax_DistancePoint <- function (y, x=1:len(y)) {
     return(dist)
 }    
 #
-Save_XTStoCSV <- function (data, filename, period = FALSE, tframe = FALSE) {
+Save_XTStoCSV <- function(data, filename, period = FALSE, tframe = FALSE) {
     # ----------
     # Общее описание:
     #     функция записи XTS рядов в .csv файл     
@@ -122,7 +122,7 @@ Save_XTStoCSV <- function (data, filename, period = FALSE, tframe = FALSE) {
     cat("Save OK :  ", filename, "\n")
 }
 #
-Read_CSVtoXTS <- function (filename, period = FALSE, tframe = FALSE) {
+Read_CSVtoXTS <- function(filename, period = FALSE, tframe = FALSE) {
     # ----------
     # Общее описание:
     #     функция чтения XTS рядов из .csv файлов
@@ -149,7 +149,7 @@ Read_CSVtoXTS <- function (filename, period = FALSE, tframe = FALSE) {
     return(data)
 }
 #
-Read_CSVtoDF <- function (file.path, sep = ";") {
+Read_CSVtoDF <- function(file.path, sep = ";") {
     # ----------
     # Общее описание:
     # функция считывания простых .csv
@@ -161,11 +161,11 @@ Read_CSVtoDF <- function (file.path, sep = ";") {
     # ----------
     #
     file <- read.table(file=file.path, header=F, sep = ";", as.is=T) 
-    return (file)
+    return(file)
 }
 #
-GetData_Ticker_One <- function (ticker, period = "15min", 
-                                from.date, to.date = Sys.Date(), rename = FALSE) {
+GetData_Ticker_One <- function(ticker, period = "15min", 
+                               from.date, to.date = Sys.Date(), rename = FALSE) {
     # ----------
     # Общее описание:
     #     функция загрузки тикера с Финам + (если нужно) переименовывает столбцы
@@ -248,7 +248,7 @@ GetData_Ticker_Set <- function(tickers = "TickerList.csv", from.date, to.date, p
     return(data.list)
 }
 #
-CalcReturn <- function(data, type = "sret") {
+Calcreturn<- function(data, type = "sret") {
     # ----------
     # Общее описание:
     #     функция вычисляет return'ы
