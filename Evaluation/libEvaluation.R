@@ -239,10 +239,10 @@ EVA_RatioTable <- function (returns.data) {
   # SterlingRatio
   sterling.data <- SterlingRatio(returns.data, scale = 1)
   # формирование таблицы
-  metric.table <- cbind(EVA_TransformMetric(sharp.data, name = "SharpRatio"), 
-                        EVA_TransformMetric(sortino.data, name = "SortinoRatio"), 
-                        EVA_TransformMetric(calmar.data, name = "CalmarRatio"),
-                        EVA_TransformMetric(sterling.data, name = "SterlingRatio") )
+  metric.table <- cbind(EVA_TransformMetric(sharp.data, metric.name = "SharpRatio"), 
+                        EVA_TransformMetric(sortino.data, metric.name = "SortinoRatio"), 
+                        EVA_TransformMetric(calmar.data, metric.name = "CalmarRatio"),
+                        EVA_TransformMetric(sterling.data, metric.name = "SterlingRatio") )
   #pMetric[,1] <- 
   return(metric.table)
 }
