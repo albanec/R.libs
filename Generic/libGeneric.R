@@ -164,6 +164,44 @@ Read_CSVtoDF <- function(file.path, sep = ";") {
   return(file)
 }
 #
+Convert_XTStoDF <- function(x) {
+  # ----------
+  # Общее описание:
+  #   функция конвертирования XTS в DF
+  # Входные данные:
+  #  x: XTS ряд
+  # Выходные данные:
+  #  x: конвертированные в df данные
+  # Зависимости:
+  require(quantmod)   
+  # ----------
+  if (is.xts(x) != TRUE) {
+    stop(paste("ERROR(Convert_XTStoDF):  Input Data wrong type!!!", sep = ""))
+  } else {
+    x <- data.frame(date = index(x), x, row.names = NULL)  
+  }
+  return(x)
+}
+#
+Convert_DFtoXTS <- function(x) {
+  # ----------
+  # Общее описание:
+  #   функция конвертирования DF в XTS
+  # Входные данные:
+  #  x: DF 
+  # Выходные данные:
+  #  x: конвертированные в XTS данные
+  # Зависимости:
+  require(quantmod)   
+  # ----------
+  if (is.data.frame(x) != TRUE) {
+    stop(paste("ERROR(Convert_DFtoXTS):  Input Data wrong type!!!", sep = ""))
+  } else {
+    x <- xts(x[, -1], order.by = as.POSIXct(x$date))
+  }
+  return(x)
+}
+#
 GetData_Ticker_One <- function(ticker, period = "15min", 
                  from.date, to.date = Sys.Date(), rename = FALSE) {
   # ----------
@@ -384,16 +422,16 @@ MergeData_inList_byCol <- function(data.list, col.name = FALSE) {
   return(merged.data)
 }
 #
-MergeData_inList_toXTS_byRow <- function(data.list) {
-  while(length(data.list) > 1) {
+MergeData_inList_byRow <- function(data.list) {
+  while (length(data.list) > 1) {
   idxdata.list <- seq(from=1, to=length(data.list), by=2)
   data.list <- lapply(idxdata.list, 
-        function(i) {
-        if(i == length(data.list)) { 
-          return(data.list[[i]]) 
-        }
-        return(rbind(data.list[[i]], data.list[[i+1]]))
-        })
+                      function(i) {
+                        if(i == length(data.list)) { 
+                          return(data.list[[i]]) 
+                        }
+                        return(rbind(data.list[[i]], data.list[[i+1]]))
+                      })
   }
   return(data.list[[1]])
 }
