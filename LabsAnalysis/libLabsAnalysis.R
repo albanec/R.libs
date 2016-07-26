@@ -41,7 +41,8 @@ Parse_LabsCSV <- function(file.path = file.path,
   temp.frame <- 
     nrow(file) %>%
     rep(NA, .) %>%
-    data.frame(.)
+    data.frame(.) %>%
+    .[, -1]
   for (i in 1:n.vars) {
     temp.var.name <- name.raw[[var.list[i]]]
     cat("var", i, ": ", ".......... ", temp.var.name, "\n")
