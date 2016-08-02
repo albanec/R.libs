@@ -1,7 +1,7 @@
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Функции для анализа параметров бектеста из Lab'ов
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-EVA_BotReitLabsFile <- function (data, bot.num.table) {
+BotReitLabsFile <- function (data, bot.num.table) {
   # ----------
   # Общее описание:
   #   функция вычисления рейтингов ботов
@@ -32,7 +32,7 @@ EVA_BotReitLabsFile <- function (data, bot.num.table) {
   table <- t(table)
   return (table)
 }
-EVA_PerReitLabsFile <- function (data) {
+PerReitLabsFile <- function (data) {
   # ----------
   # Общее описание:
   #   функция вычисления рейтингов периодов
@@ -63,7 +63,7 @@ EVA_PerReitLabsFile <- function (data) {
   return (table)
 }
 #
-EVA_3DChartLabsFile <- function (data, var1, var2, var3, color) {
+3DChartLabsFile <- function (data, var1, var2, var3, color) {
   # ----------
   # Общее описание:
   #   функция построения 3D графиков для LabsFile
@@ -82,7 +82,7 @@ EVA_3DChartLabsFile <- function (data, var1, var2, var3, color) {
   return(p)
 }
 #
-EVA_ReitChartLabsFile <- function (data, bot = FALSE, per = FALSE) {
+ReitChartLabsFile <- function (data, bot = FALSE, per = FALSE) {
   # ----------
   # Общее описание:
   #   функция графиков рейтингов
@@ -103,7 +103,7 @@ EVA_ReitChartLabsFile <- function (data, bot = FALSE, per = FALSE) {
   return(p)
 }
 #
-EVA_3Dto2DChartsMatrixLabsFile <- function (data, plot.num) {
+3Dto2DChartsMatrixLabsFile <- function (data, plot.num) {
   # ----------
   # Общее описание:
   #   функция раскладывает 3D график на набор 2D графиков
@@ -180,7 +180,7 @@ EVA_3Dto2DChartsMatrixLabsFile <- function (data, plot.num) {
 # Функции для анализа параметров бектеста
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Расчет временных метрик:
-EVA_DateTable <- function (states.data) {
+DateTable <- function (states.data) {
   # ----------
   # Общее описание:
   #   функция свода временных параметров работы стратегии
@@ -197,7 +197,7 @@ EVA_DateTable <- function (states.data) {
                                     ))
 }
 #
-EVA_CalcTradingDays <- function(from.date, to.date, calendar = "Russia/MOEX") {
+CalcTradingDays <- function(from.date, to.date, calendar = "Russia/MOEX") {
   # ----------
   # Общее описание:
   # функция возвращает количетво торговых дней за период бека по календарю биржи
@@ -217,7 +217,7 @@ EVA_CalcTradingDays <- function(from.date, to.date, calendar = "Russia/MOEX") {
 }
 #
 # Расчет коэффициентов продуктивности:
-EVA_RatioTable <- function (returns.data) {
+RatioTable <- function (returns.data) {
   # ----------
   # Общее описание:
   #   функция вычисления стандартного наборов метрик продуктивности результатов работы стратегий
@@ -239,15 +239,15 @@ EVA_RatioTable <- function (returns.data) {
   # SterlingRatio
   sterling.data <- SterlingRatio(returns.data, scale = 1)
   # формирование таблицы
-  metric.table <- cbind(EVA_TransformMetric(sharp.data, metric.name = "SharpRatio"), 
-                        EVA_TransformMetric(sortino.data, metric.name = "SortinoRatio"), 
-                        EVA_TransformMetric(calmar.data, metric.name = "CalmarRatio"),
-                        EVA_TransformMetric(sterling.data, metric.name = "SterlingRatio") )
+  metric.table <- cbind(TransformMetric(sharp.data, metric.name = "SharpRatio"), 
+                        TransformMetric(sortino.data, metric.name = "SortinoRatio"), 
+                        TransformMetric(calmar.data, metric.name = "CalmarRatio"),
+                        TransformMetric(sterling.data, metric.name = "SterlingRatio") )
   #pMetric[,1] <- 
   return(metric.table)
 }
 # Вспомогательные фунции:
-EVA_TransformMetric <- function (metric.data, metric.name) {
+TransformMetric <- function (metric.data, metric.name) {
   # ----------
   # Общее описание:
   #   функция трансформации данных метрик к одному виду (нужна для RatioTable)
@@ -269,7 +269,7 @@ EVA_TransformMetric <- function (metric.data, metric.name) {
   return (metric.data)
 }
 # Расчет Drawdown метрик:
-EVA_DrawdownDataSet <- function (returns.data, days = TRUE) {
+DrawdownDataSet <- function (returns.data, days = TRUE) {
   # ----------
   # Общее описание:
   # функция возращает таблицу просадок + кол-во дней в просадке (формирует ряд для анализа)
@@ -290,7 +290,7 @@ EVA_DrawdownDataSet <- function (returns.data, days = TRUE) {
   return (drawdowns)
 }
 #
-EVA_DrawdownTable <- function (returns.data, plot = FALSE, period = "15") {
+DrawdownTable <- function (returns.data, plot = FALSE, period = "15") {
   # ----------
   # Общее описание:
   # вычисляет параметры по просадкам (выводит итоговые данные)
@@ -306,7 +306,7 @@ EVA_DrawdownTable <- function (returns.data, plot = FALSE, period = "15") {
   #
   # подготовка данных
   cat("Calculating Drawdown Metric:", "Drawdown Data Set", "\n", sep = "  ")
-  drawdowns <- EVA_DrawdownDataSet(returns.data, days = TRUE)
+  drawdowns <- DrawdownDataSet(returns.data, days = TRUE)
   # max просадка
   cat("Calculating Performance Metric:", "MaxDrawdown", "\n", sep = "  ")
   max.drawdown <- as.numeric(drawdowns$Depth[1])
@@ -339,7 +339,7 @@ EVA_DrawdownTable <- function (returns.data, plot = FALSE, period = "15") {
 #
 #
 # Вывод графиков:
-EVA_BigPlot <- function(returns, MarginPlot = FALSE, ReturnsPlot = FALSE, DrawdownShadowPlot = FALSE, DrawdownPlot = FALSE, CandlePlot = FALSE, period = "15 min") {
+BigPlot <- function(returns, MarginPlot = FALSE, ReturnsPlot = FALSE, DrawdownShadowPlot = FALSE, DrawdownPlot = FALSE, CandlePlot = FALSE, period = "15 min") {
   # ----------
   # Общее описание:
   # 
@@ -367,7 +367,7 @@ EVA_BigPlot <- function(returns, MarginPlot = FALSE, ReturnsPlot = FALSE, Drawdo
     n <- n + 1
     if (drawdownShadow.plot == TRUE) {
       print(paste("Calculating Charts:", "Margin & DrawdownShadow Chart"))
-      drawdowns <- EVA_DrawdownDataSet(returns, days = FALSE)
+      drawdowns <- DrawdownDataSet(returns, days = FALSE)
       drawdowns.dates <- cbind(format(drawdowns$From),format(drawdowns$To))
       drawdowns.dates[is.na(drawdowns.dates)] <- format(index(returns)[NROW(returns)])
       drawdowns.dates <- lapply(seq_len(nrow(drawdowns.dates)), function(i) drawdowns.dates[i,])  
@@ -403,7 +403,7 @@ EVA_BigPlot <- function(returns, MarginPlot = FALSE, ReturnsPlot = FALSE, Drawdo
   if (CandlePlot == TRUE) {
     print(paste("Calculating Charts:", "Drawdown Length in Candles Chart"))
     if (drawdownShadow.plot == FALSE) {
-      drawdowns <- EVA_DrawdownDataSet(returns, days = FALSE)
+      drawdowns <- DrawdownDataSet(returns, days = FALSE)
     } 
     drawdowns <- drawdowns[order(drawdowns$From), ]
     rownames(drawdowns) <- 1:nrow(drawdowns)

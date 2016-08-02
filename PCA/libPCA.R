@@ -1,4 +1,4 @@
-PCA_DataPreparation <- function (ticker.list, price, description, period, tframe, approx = FALSE) {
+DataPreparation <- function (ticker.list, price, description, period, tframe, approx = FALSE) {
   # ----------
   # Общее описание:
   #   функция подготовки данных к PCA
@@ -14,17 +14,17 @@ PCA_DataPreparation <- function (ticker.list, price, description, period, tframe
   # ----------
   # 
   cat( "Start DataPreparation...", "\n")
-  data <- PCA_MergeData(price  =  price, ticker.list = ticker.list, description = description, period = period, tframe = tframe, approx = approx)
+  data <- MergeData(price  =  price, ticker.list = ticker.list, description = description, period = period, tframe = tframe, approx = approx)
   cat( "Merging Data...", "\t", "done", "\n")
-  #data <- PCA_BindToMatrix(data, load.csv = FALSE, save.filename = "Matrix.csv")
+  #data <- BindToMatrix(data, load.csv = FALSE, save.filename = "Matrix.csv")
   cat( "Create MatrixForPCA...", "\t", "done", "\n")
   return(data)
 } 
 #
-PCA_MergeData <- function (price = "SR", ticker.list, description = FALSE, period, tframe, approx = FALSE) {
+MergeData <- function (price = "SR", ticker.list, description = FALSE, period, tframe, approx = FALSE) {
   # ----------
   # Общее описание:
-  #   вспомогательная для PCA_DataPreparation()
+  #   вспомогательная для DataPreparation()
   #   функция объединения данных в один XTS и устранение NA значений
     # NA можно убрать простым na.locf и аппроксимацией
   # Входные данные:
@@ -92,13 +92,13 @@ PCA_MergeData <- function (price = "SR", ticker.list, description = FALSE, perio
   return (merged.data)
 }
 #
-PCA_BindToMatrix <- function (data, load.filename = FALSE, save.filename = "Matrix.csv") {
+BindToMatrix <- function (data, load.filename = FALSE, save.filename = "Matrix.csv") {
   # ----------
   # Общее описание:
-  #   вспомогательная для PCA_DataPreparation()
+  #   вспомогательная для DataPreparation()
   #   функция преобразования объединенного xts в матрицу
     # на вход подается merged.data xts либо напрямую, либо через чтение .csv (чтение нужно для 
-    # независимого от PCA_DataPreparation() использования
+    # независимого от DataPreparation() использования
   # Входные данные:
   #  data - подготовленный и объединенный xts (merged.data)
   #   load.filename - если данные необходимо считать из .csv, то это путь
@@ -119,7 +119,7 @@ PCA_BindToMatrix <- function (data, load.filename = FALSE, save.filename = "Matr
   return (data)
 }
 #
-PCA_ExpandData <- function(ticker.list, frame.list, description, period,  approx, price) {
+ExpandData <- function(ticker.list, frame.list, description, period,  approx, price) {
   # ----------
   # Общее описание:
   #   генерирует большое количество данных для PCA (расширенное по периодам/тайм-фреймам)
@@ -141,12 +141,12 @@ PCA_ExpandData <- function(ticker.list, frame.list, description, period,  approx
   nperiod <- length(period)
   for (i in 1:nperiod) {
     for (t in 1:nframe) {
-      data <- PCA_DataPreparation (ticker.list = ticker.list, description = description, period = period[i], tframe = tframe[t], approx = approx, price = price)
+      data <- DataPreparation (ticker.list = ticker.list, description = description, period = period[i], tframe = tframe[t], approx = approx, price = price)
     }  
   } 
 }
 #
-PCA_ComputePCA <- function(data, period, tframe, price = "SR", KG.test = FALSE, print = TRUE) {
+ComputePCA <- function(data, period, tframe, price = "SR", KG.test = FALSE, print = TRUE) {
   # ----------
   # Общее описание:
   #   вычисление PC + тестирует данные
@@ -229,7 +229,7 @@ PCA_ComputePCA <- function(data, period, tframe, price = "SR", KG.test = FALSE, 
   return(equity)
 }
 #
-PCA_DFtestPCA <- function (data) {
+DFtestPCA <- function (data) {
   # ----------
   # Общее описание:
   #   проверка на стационарность получившихся PC (по их equity)
@@ -249,7 +249,7 @@ PCA_DFtestPCA <- function (data) {
   cat("Best DF-test result...", "\t", df.value[statPC], "\t", "PC:", statPC, "\n")
   return (statPC) 
 }
-PCA_MergeBasketData <- function(ticker.list, period, tframe, description = FALSE) {
+MergeBasketData <- function(ticker.list, period, tframe, description = FALSE) {
   # ----------
   # Общее описание:
   #   объединяет котировки по портфелю
@@ -294,7 +294,7 @@ PCA_MergeBasketData <- function(ticker.list, period, tframe, description = FALSE
   return(merged.data)
 }
 #
-PCA_BasketSpread <- function (data, ticker.list, period, pca.tframe, price, n.PC) {
+BasketSpread <- function (data, ticker.list, period, pca.tframe, price, n.PC) {
   # ----------
   # Общее описание:
   #   расчет спреда по корзине 
@@ -345,7 +345,7 @@ PCA_BasketSpread <- function (data, ticker.list, period, pca.tframe, price, n.PC
     return (data)
 }
 #
-PCA_ZScoresData <- function (data, vol = TRUE, sma.period) {
+ZScoresData <- function (data, vol = TRUE, sma.period) {
   # ----------
   # Общее описание:
   #  вычисление z-scores для спреда (с нормировкой по vol( за sma.period) и без)
@@ -371,7 +371,7 @@ PCA_ZScoresData <- function (data, vol = TRUE, sma.period) {
   return(data)
 }
 #
-PCA_Strategy_SimpleMeanReversion <- function (data, sma.period, 
+Strategy_SimpleMeanReversion <- function (data, sma.period, 
                        low.mark, hi.mark, 
                        low.close.mark, hi.close.mark, 
                        price = "LR", state=TRUE) {
@@ -393,14 +393,14 @@ PCA_Strategy_SimpleMeanReversion <- function (data, sma.period,
   # точки пересечения PC с границами зоны открытия позиций 
     # пересечение верхней зоны открытия (снизу вверх)
   if (data$z.score > hi.mark)
-  data$sig.buy <- STR_CrossForXTS(data$z.score, hi.mark) 
+  data$sig.buy <- CrossForXTS(data$z.score, hi.mark) 
     # пересечение нижней зоны открытия (сверху вниз)
-  data$sig.sell <- STR_CrossForXTS(low.mark, data$z.score)
+  data$sig.sell <- CrossForXTS(low.mark, data$z.score)
   # точки пересечения PC с границами зоны закрытия позиций 
     # пересечение верхней зоны закрытия (сверху вниз)
-  data$sig.close.buy <- STR_CrossForXTS(hi.close.mark, data$z.score) 
+  data$sig.close.buy <- CrossForXTS(hi.close.mark, data$z.score) 
     # пересечение нижней зоны закрытия (сверху вниз)
-  data$sig.close.sell <- STR_CrossForXTS(data$z.score, low.close.mark)
+  data$sig.close.sell <- CrossForXTS(data$z.score, low.close.mark)
   # точки в позиции buy
   data$pos.buy <- data$sig.buy - data$sig.close.buy
   # точки в позиции sell
