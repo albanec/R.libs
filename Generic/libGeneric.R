@@ -568,9 +568,13 @@ AddData_FuturesSpecs_inXTS <- function(data, from.date, to.date, im.wd) {
 #
 SubsetColumn_inXTS <- function(data, target) {
   # выделение столбцов с именами, содержащими target параметр
-  target.names <- 
-  names(data)[grep(target, names(data))] %>%
-  sub(target, "", target.names)
-  data <- data[, (which(colnames(data) %in% data))]
+  data <-
+    colnames(data) %>%
+    grep(target, .) %>%
+    names(data)[.] %>%
+    { 
+      which(colnames(data) %in% .)
+    } %>%
+    data[, .]
   return(data)
 }

@@ -2,9 +2,10 @@
 # Фукции для парсинга готовых данных бэктеста (из TSlab & WealthLab) и подготовки для анализа:
 #
 Parse_LabsCSV <- function(file.path = file.path, 
-                          var.list, profit = profit, 
-                          draw = draw, sort = FALSE, 
-                          var.names = TRUE, sep = ";") {
+                          autoParse, 
+                          sort = FALSE, 
+                          var.names = TRUE, sep = ";",
+                          ...) {
   # ----------
   # Общее описание:
   #   функция для парсинга .csv файлов (заточена под выгрузку данных из WealthLab & TSlab)
@@ -22,11 +23,52 @@ Parse_LabsCSV <- function(file.path = file.path,
   # считывание файла 
   file <- read.table(file = file.path, header = F, sep = sep, as.is = T)    
   # выделяем нужные параметры
-  # profit/draw
+  #
+  if (autoParse == TRUE) {
+    # если autoParse включён, то номера столбцов определяются автоматически
+      # данные по столбцам выносятся в base enviroment
+    cat("Parse_LabsCSV:  Парсинг названий переменных и profit/draw...", "\n")
+    # ключ для переменных: "_"
+    var.list <<-
+      file[1, ] %>%
+      grep("_", .) 
+    # ключ для профита: "Чистый П/У %"
+    profit <<- 
+      file[1, ] %>%
+      grep("Чистый П/У %", .) 
+    # ключ для просадки: "Макс. просадка %"
+    draw <<- 
+      file[1, ] %>%
+      grep("Макс. просадка %", .) 
+    #
+    if (!exists("var.list")) {
+      stop(paste("ERROR(Parse_LabsCSV):  Не сформирован var.list!!!", sep = ""))
+    }
+    if (!exists("profit")) {
+      stop(paste("ERROR(Parse_LabsCSV):  Не найден profit!!!", sep = ""))
+    }
+    if (!exists("draw")) {
+      stop(paste("ERROR(Parse_LabsCSV):  Не найден draw!!!", sep = ""))
+    }
+  } else {
+    cat("Parse_LabsCSV:  Номера столбцов заданы в ручную", "\n") 
+    if (!exists("var.list")) {
+      stop(paste("ERROR(Parse_LabsCSV):  Не задан var.list!!!", sep = ""))
+    }
+    if (!exists("profit")) {
+      stop(paste("ERROR(Parse_LabsCSV):  Не задан  номер столбца profit!!!", sep = ""))
+    }
+    if (!exists("draw")) {
+      stop(paste("ERROR(Parse_LabsCSV):  Не задан номер столба draw!!!", sep = ""))
+    }
+  }
+  #
+  # название столбцов profit/draw
   profit.name <- file[[1, profit]] 
   draw.name <- file[[1, draw]]
   # всего пременных
-  n.vars <- length(var.list)
+    # n.vars выносятся в base enviroment
+  n.vars <<- length(var.list)
   cat("############", "\n",
       "Парсинг файла:", ".......... ", file.path, "\n")
   cat("############",
@@ -53,10 +95,10 @@ Parse_LabsCSV <- function(file.path = file.path,
   }
   cat("profit: ", ".......... ", profit.name, "\n")
   cat("draw:   ", ".......... ", draw.name, "\n")
-  temp.frame$profit <- as.numeric( gsub("\\,", ".", file[[profit]]) )
-  temp.frame$profit <- as.numeric( gsub("\\s", "", temp.frame$profit) )
-  temp.frame$draw <- as.numeric( gsub("\\,", ".", file[[draw]]) )
-  temp.frame$draw <- as.numeric( gsub("\\s", "", temp.frame$draw) )
+  temp.frame$profit <- as.numeric(gsub("\\,", ".", file[[profit]]))
+  temp.frame$profit <- as.numeric(gsub("\\s", "", temp.frame$profit))
+  temp.frame$draw <- as.numeric(gsub("\\,", ".", file[[draw]]))
+  temp.frame$draw <- as.numeric(gsub("\\s", "", temp.frame$draw))
   temp.frame$temp.frame <- NULL
   # чистим от лишнего 
   remove(file)  
@@ -288,15 +330,20 @@ Quantile_LabsFile <- function(data, var, q.hi = 0, q.low = 0,
 }
 #
 AllPreparation_LabsFile <- function(file.path, sep = ";",
-                                    var.list, profit = profit, draw = draw, m = FALSE, 
+                                    autoParse = TRUE, 
+                                    m = FALSE, 
                                     q.hi = FALSE, q.low = FALSE, low = FALSE, hi = FALSE,
-                                    one.scale = TRUE,  tslab = TRUE, trend.filter = TRUE) {
+                                    one.scale = TRUE,  tslab = TRUE, trend.filter = TRUE,
+                                    ...) {
   # ----------
   # Общее описание:
   # Итоговая функция для обработки данных из *Lab
   # Входные данные:
   # file.path, sep: путь и разделители для парсинга
-  # var.list, profit, draw, m: номера столбцов переменных, профита, просадки и количество месяцев торговли 
+  # m: количество месяцев торговли 
+  # profit: (по умолчанию == FALSE, выбор идёт автоматически) номера столбца с данными по профиту 
+  # draw: (по умолчанию == FALSE, выбор идёт автоматически) номера столбца с данными по просадке  
+  # var.list: (по умолчанию == FALSE, выбор идёт автоматически) вектор с номерами столбцов переменных
   # q.him q.low, loq, hi: параметры квантиля
   # one.scale: нужно ли сохранить max/min заначения (для оптимизации тепловой шкалы)
   # tslab: T/F данные из TSlab
@@ -305,24 +352,26 @@ AllPreparation_LabsFile <- function(file.path, sep = ";",
   # data: полностью обработанные данные
   # ----------
   #
-  data <- Parse_LabsCSV(file.path = file.path, var.list, profit = profit, 
-                        draw = draw, sort = FALSE, var.names = FALSE, sep)
+  data <- Parse_LabsCSV(autoParse = TRUE, file.path = file.path, sort = FALSE, var.names = FALSE, sep)
   if (tslab == FALSE) {
     data$var0 <- BotNumSetLabsFile(data, bot.num.table)  
     data <- FilterDuplicatedRow_LabsFile(data)
   }
   if (m != FALSE) {
-    data$profit.norm <- NormProfit_LabsFile(data, m = m)  
+    data$profit.norm <- NormProfit_LabsFile(data, m = m) 
     data <- data[which(data$profit.norm > 0), ]
   } else {
     data <- data[which(data$profit > 0), ]
   }
   if (trend.filter == TRUE) {
-    data <- data[which(data$var1 < data$var2), ]  
+    data <- data[which(data$var1 < data$var2), ] 
   }
   #
   if (hi | low != FALSE) {
-    data <- Quantile_LabsFile(data, var = 6, q.hi, q.low, hi, low, abs = FALSE)
+    temp.ColName <-
+      colnames(data) %>%
+      length(.) 
+    data <- Quantile_LabsFile(data, var = temp.ColName, q.hi, q.low, hi, low, abs = FALSE)
   }
   if (one.scale == TRUE) {
     data[nrow(data)+1, ] <- c(rep(0, length(var.list)+2), data$profit.norm[[which.max(data$profit.norm)]])
