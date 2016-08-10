@@ -1,6 +1,7 @@
 source("libEva_Ratio.R")
 source("libEva_Drawdown.R")
-source("libEva_DealsTable.R")
+source("libEva_Deals.R")
+source("libEva_Dates.R")
 source("libEva_Labs.R")
 #
 CalcPerfomanceTable <- function(data, returns, 
@@ -17,53 +18,7 @@ CalcPerfomanceTable <- function(data, returns,
   return(perfomanceTable)
 }
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Функции для анализа параметров бектеста
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#
-###
-#' Таблица временных параметров работы стратегии
-#'
-#' Формирует таблицу временных параметров работы стратегии
-#' 
-#' @param data xts с данными отработки стратегии
-#' @param from.date Дата начала торговли
-#' @param to.date Дата окончания торговли
-#' @param period Период свечей
-#'  
-#' @return datesTable Таблица с временными параметрами
-#'
-#' @export
-DateTable <- function(data, from.date, to.date, period) {
-  # Зависимости:
-  require(PerformanceAnalytics)
-  # ----------
-  #
-  cat("INFO(DateTable):  Build Date Metrics", "\n", sep = "  ")
-  trading.days <- CalcTradingDays(data)
-  datesTable <- cbind.data.frame(from.date, to.date, period, trading.days)
-  colnames(datesTable) <- c("Начальная дата", "Конечная дата", "Период", "Число торговых дней")
-  return(datesTable)
-}
-#
-###
-#' Вычисление торговых дней
-#'
-#' Возвращает количество торговых дней за период  
-#' 
-#' @param data xts с данными отработки стратегии
-#'  
-#' @return tradingDays Число торговых дней
-#'
-#' @export
-CalcTradingDays <- function(data) {
-  #
-  tradingDays <- 
-    index(data) %>%
-    ndays(.)
-  return(tradingDays)
-}
-#
+
 
 
 
