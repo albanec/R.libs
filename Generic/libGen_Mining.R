@@ -115,3 +115,22 @@ SubsetColumn_inXTS <- function(data, target) {
   #
   return(data)
 }
+#
+###
+#' Функция очистки мусора в столбцах данных
+#'
+#' @param data Исходные данные
+#' @param target Ключ для поиска
+#' 
+#' @return data Данные, очищенный от столбцов с target в названии
+#'
+#' @export
+CleanGarbage_inCols <- function(x, target = "temp") {
+  x <- 
+    colnames(x) %>%
+    grep(target, .) %>%
+    {
+      x[, -.]
+    }
+  return(x)
+}
