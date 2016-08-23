@@ -24,11 +24,12 @@ Read_CSVtoDF <- function(file.path, sep = ";") {
 #' @param filename Название файла (без расширения .csv)
 #' @param period Указать в название период свечей
 #' @param tframe Указать в названии номер тайм-фрейма во FrameList'е
+#' @param sep Тип разделителя
 #'
 #' @return data XTS ряд, полученный из файла
 #'
 #' @export
-Read_CSVtoXTS <- function(filename, period = FALSE, tframe = FALSE) {
+Read_CSVtoXTS <- function(filename, period = FALSE, tframe = FALSE, sep = ",") {
   # ----------
   require(xts)
   # ----------
@@ -40,7 +41,7 @@ Read_CSVtoXTS <- function(filename, period = FALSE, tframe = FALSE) {
   filename <- paste(filename, tframe, sep = ".")
   }
   filename <- paste(filename, "csv", sep = ".")
-  data <- read.csv(file = filename)
+  data <- read.csv(file = filename, sep = sep)
   data <- xts(data[,-1], order.by = as.POSIXct(data$Index))
   cat("Read OK :  ", file.path(getwd(), filename), "\n")
   #
@@ -53,11 +54,12 @@ Read_CSVtoXTS <- function(filename, period = FALSE, tframe = FALSE) {
 #' @param filename Название файла (без расширения .csv)
 #' @param period Указать в название период свечей
 #' @param tframe Указать в названии номер тайм-фрейма во FrameList'е
+#' @param sep Тип разделителя
 #'
 #' @return 
 #'
 #' @export
-Save_XTStoCSV <- function(data, filename, period = FALSE, tframe = FALSE) {
+Save_XTStoCSV <- function(data, filename, period = FALSE, tframe = FALSE, sep = ",") {
   # ----------
   require(zoo)
   # ----------  
@@ -69,7 +71,7 @@ Save_XTStoCSV <- function(data, filename, period = FALSE, tframe = FALSE) {
   filename <- paste(filename, tframe, sep = ".")
   }
   filename <- paste(filename, ".csv", sep = "")
-  write.zoo(data, file = filename, sep = ",")
+  write.zoo(data, file = filename, sep = sep)
   cat("Save OK :  ", file.path(getwd(), filename), "\n")
 }
 #
