@@ -50,7 +50,7 @@ DatesTable <- function(data, data.state) {
     {
       x <- .
       temp.index <- which(!duplicated(x$pos.num, fromLast = TRUE))    
-      result <- x[temp.index]$pos.ticks
+      result <- x[temp.index]$pos.bars
     } %>%
     sum(.)
   ### бары вне рынка

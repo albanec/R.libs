@@ -44,7 +44,8 @@ TestStrategy_gear <- function(data.source,
       data <- xts()
       cat("TestStrategy INFO:  Calculate SMA with period:  ", sma.per, "\n")
       # тикер-индикатор: SI        
-      data$sma <- SMA(data.source$SPFB.SI.Close, sma.per)
+      #data$sma <- SMA(data.source$SPFB.SI.Close, sma.per)
+      data$sma <- CalcSMA(x = data.source$SPFB.SI.Close, per = sma.per)
       cat("TestStrategy INFO:  Calculate $sig and $pos...", "\n")
       data$sig <- ifelse((data$sma < data.source$SPFB.SI.Close), 1, 
                           ifelse(data$sma > data.source$SPFB.SI.Close, -1, 0))
@@ -113,8 +114,8 @@ TestStrategy_gear <- function(data.source,
         MergeData_inList_byRow(.) %T>%
         {
           # ветвим и проставляем тики позиций (добаляем напрямую в data)
-          data$pos.ticks <<- lag(.)
-          data$pos.ticks[1] <<- 0
+          data$pos.bars <<- lag(.)
+          data$pos.bars[1] <<- 0
         } %>%
         {
           . %/% add.per
@@ -204,6 +205,9 @@ TestStrategy_gear <- function(data.source,
             # x$state[temp.ind] <- sign(x$action[temp.ind])
             x$action[temp.ind] <- abs(sign(x$action[temp.ind]))
             x$pos.num[temp.ind] <- x$pos.num[temp.ind] - 1
+            # правильное заполнение поля $pos.bars
+            temp.ind.num <- x[temp.ind, which.i=TRUE]
+            x$pos.bars[temp.ind] <- x$pos.bars[temp.ind.num - 1] 
             return(x)
           }
         data <- rbind(data, temp)   
@@ -356,7 +360,8 @@ TestStrategy_gear <- function(data.source,
         data.state$n[n] <- 0
       } else {
         # если открытие позиции, то
-        if ((data.state$pos.add[n] + data.state$pos.drop[n]) == 0) {
+        #if ((data.state$pos.add[n] + data.state$pos.drop[n]) == 0) {
+        if (data.state$pos.bars[n] == 0) {
           data.state$n[n] <-
             {
               data.state$balance[[n - 1]] * k.mm / 
