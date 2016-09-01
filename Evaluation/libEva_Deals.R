@@ -129,6 +129,7 @@ ConvertDealsTable <- function(data.deals, type = "tickers") {
 #' @param data Входной xts ряд сделок
 #' @param n Номер сделки
 #' @param data.names Вектор тикеров
+#' @type Считать по тикерам или по портфелю
 #'
 #' @return DealsTable data.frame содержащий все сделки
 #'
@@ -163,7 +164,6 @@ CalcOneDealSummary_DF <- function(data, type, n, ...) {
           # данные по каждому тикеру выкидываем в отдельный подлист
           lapply(data.names.list, 
                  function(x) {
-
                    # правильно прописываем названия столбцов с нужными данными (в names.set)
                    temp.text <- 
                      paste("names.set <- c(\"pos\", \"pos.num\", \"pos.ticks\", \"pos.add\", \"pos.drop\", ",
@@ -175,9 +175,9 @@ CalcOneDealSummary_DF <- function(data, type, n, ...) {
                      # вытаскиваем нужные столбцы (по names.set)
                      temp.data[, (which(colnames(temp.data) %in% names.set))] %>%
                      # для удобства переименуем 
-                     {
-                       names(.) <- c("pos", "pos.num", "pos.ticks", "pos.add", "pos.drop", "Open", 
-                                     "n", "diff.n", "commiss", "equity", "deal.return") 
+                     {        
+                       names(.) <- c("pos", "pos.num", "pos.ticks", "pos.add", "pos.drop", "Open", "n", "diff.n",  
+                                     "commiss", "deal.return", "equity") 
                        return(.)
                      } %>%
                      # нумерация субсделок (x.0 - открытия/закрытия и x.1...n - для изменений внутри)
@@ -189,7 +189,11 @@ CalcOneDealSummary_DF <- function(data, type, n, ...) {
                          { 
                            ifelse(. < 3, 
                                   0,
-                                  0.1)
+                                  ifelse(. > 9,
+                                         0.01,
+                                         ifelse(. > 10,
+                                                0.001,
+                                                0.1)))
                          } %>% 
                          as.vector
                        # расчёт номеров
@@ -226,11 +230,15 @@ CalcOneDealSummary_DF <- function(data, type, n, ...) {
             df <- .
             df$subnum <- 
               nrow(df) %>%
-              { 
-                ifelse(. < 3, 
-                       0,
-                       0.1)
-              } %>% 
+                { 
+                  ifelse(. < 3, 
+                         0,
+                         ifelse(. > 9,
+                                0.01,
+                                ifelse(. > 10,
+                                       0.001,
+                                       0.1))) 
+                } %>%
               as.vector
             df$pos.num <- 
               df$subnum %>%
