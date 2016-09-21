@@ -3,24 +3,90 @@
 # (из TSlab & WealthLab) и подготовки для анализа:
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #
+###
+#' Итоговая функция для обработки данных из *Lab
+#' 
+#' @param file.path Путь к файлу с данными 
+#' @param sep Разделитель в файле
+#' @param m Количество месяцев торговли
+#' @param profit Номер столбца с данными по профиту (по умолчанию == FALSE, выбор идёт автоматически)  
+#' @param draw Номер столбца с данными по просадке (по умолчанию == FALSE, выбор идёт автоматически) 
+#' @param var.list Вектор с номерами столбцов переменных (по умолчанию == FALSE, выбор идёт автоматически) 
+#' @param q.hi Уровень квантиля для вычисления лучших значений (берётся всё, что выше квантиля)
+#' @param q.low Уровень квантиля для вычисления худших значений (берётся всё, что ниже квантиля)
+#' @param low Вычисляем худшие значения (классический квантиль) 
+#' @param hi Вычисляем лучшие значения (всё, что больше квантиля) 
+#' @param one.scale Нужно ли сохранить max/min заначения (для оптимизации тепловой шкалы)
+#' @param tslab T/F данные из TSlab
+#' @param trend.filter Фильтровать или нет контртрендовые значения
+#'
+#' @return data Полностью обработанные данные
+#'
+#' @export 
+AllPreparation_LabsFile <- function(file.path, sep = ";",
+                                    data = FALSE,
+                                    autoParse = TRUE, 
+                                    m = FALSE, 
+                                    q.hi = FALSE, q.low = FALSE, low = FALSE, hi = FALSE,
+                                    one.scale = TRUE,  tslab = TRUE, trend.filter = TRUE,
+                                    ...) {
+  #
+  if (autoParse == TRUE) {
+    data <- Parse_LabsCSV(autoParse = TRUE, file.path = file.path, sort = FALSE, var.names = FALSE, sep)
+  } else {
+    data <- Parse_LabsCSV(autoParse = FALSE, file.path = file.path, sort = FALSE, var.names = FALSE, sep, 
+                          var.list, profit, draw)
+  }  
+  if (tslab == FALSE) {
+    data$var0 <- BotNumSetLabsFile(data, bot.num.table)  
+    data <- FilterDuplicatedRow_LabsFile(data)
+  }
+  # создание нормированной метрики
+  if (m != FALSE) {
+    data$profit.norm <- NormProfit_LabsFile(data, m = m) 
+    data <- data[which(data$profit.norm > 0), ]
+  } else {
+    data <- data[which(data$profit > 0), ]
+  }
+  # фильтр контр-трендовых значений
+  if (trend.filter == TRUE) {
+    data <- data[which(data$var1 < data$var2), ] 
+  }
+  # фильтрация квантилей
+  if (hi | low != FALSE) {
+    temp.ColName <-
+      colnames(data) %>%
+      length(.) 
+    data <- CalcQuantile(data, var = temp.ColName, q.hi, q.low, hi, low, abs = FALSE)
+  }
+  # масштабирование измерений
+  if (one.scale == TRUE) {
+    data[nrow(data)+1, ] <- c(rep(0, length(var.list)+2), data$profit.norm[[which.max(data$profit.norm)]])
+    data[nrow(data)+1, ] <- c(rep(0, length(var.list)+3))
+  }
+  #
+  return(data)
+}
+#
+###
+#' Функция для парсинга .csv файлов (заточена под выгрузку данных из WealthLab & TSlab)
+#' 
+#' @param file.path Путь к файлу (абсолютный путь)
+#' @param var.list Лист с номерами столбцов нужных переменных 
+#' (любое количество, функция подстраивается под нужное число)
+#' @param profit Номер столбца с профитом
+#' @param draw Номер столбца с данными по просадкам (нужно для нормирования доходностей)
+#' @param sort Нужна ли сортировка занчений по доходности
+#' @param var.names Выгрузить из исходного файла имена переменных
+#'
+#' @return data Выгруженные из .csv данные
+#'
+#' @export
 Parse_LabsCSV <- function(file.path = file.path, 
                           autoParse, 
                           sort = FALSE, 
                           var.names = TRUE, sep = ";",
                           ...) {
-  # ----------
-  # Общее описание:
-  #   функция для парсинга .csv файлов (заточена под выгрузку данных из WealthLab & TSlab)
-  # Входные данные:
-  #   file.path: путь к файлу (абсолютный путь)
-  #   var.list: лист с номерами столбцов нужных переменных (любое количество, функция подстраивается под нужное число)
-  #   profit: номер столбца с профитом
-  #   draw: номер столбца с данными по просадкам (нужно для нормирования доходностей)
-  #   sort: нужна ли сортировка занчений по доходности
-  #   var.names: выгрузить из исходного файла имена переменных
-  # Выходные данные:
-  #   data: выгруженные из .csv данные
-  # ----------
   #
   # считывание файла 
   file <- read.table(file = file.path, header = F, sep = sep, as.is = T)    
@@ -120,21 +186,22 @@ Parse_LabsCSV <- function(file.path = file.path,
       "Готово.", 
       "############",
       sep = "\n")
+  #
   return(temp.frame)
 }
 #
+###
+#' Функция для сравнения двух распарсенных данных бэктеста и вывода только повторяющихся строк
+#' 
+#' @param file1 Считанный из .csv file1
+#' @param file2 Считанный из .csv file2
+#' @param rec Наличие/отсутствие рековери
+#' @param p.diff Нужен ли расчёт сглаженности equity (abs разности профитов)
+#'
+#' @return file1 Файл содер. в себе только повторяющие параметры роботов (+|- рековери и разница профитов)
+#'
+#' @export
 Compare_LabsFile <- function(file1, file2, rec = FALSE, p.diff = TRUE) {
-  # ----------
-  # Общее описание:
-  # функция для сравнения двух распарсенных данных бэктеста и вывода только 
-  # повторяющихся строк
-  # Входные данные:
-  # file1, file2: считанные из .csv данные
-  # rec: наличие/отсутствие рековери
-  # p.diff: нужен ли расчёт сглаженности equity (abs разности профитов)
-  # Выходные данные:
-  #   file1: файл содер. в себе только повторяющие параметры роботов (+|- рековери и разница профитов)
-  # ----------
   #
   # добавление идентификатора строк и сортировка 
     temp.file1 <- file1
@@ -190,16 +257,17 @@ Compare_LabsFile <- function(file1, file2, rec = FALSE, p.diff = TRUE) {
   return(file1)
 }
 #
+###
+#' Функция для генерации номеров ботов (нужна для анализа тестов из WealthLab)
+#' 
+#' бестолковая, тупо генерит бинарный ряд 2^n-1 и присваивает номера строкам
+#'
+#' @param n Степень двойки
+#'
+#' @return bot.num.table Таблица бинарных номеров роботов с присвоенными десятеричными номерами
+#'
+#' @export
 BotBinNumGenLabsFile <- function(n) {
-  # ----------
-  # Общее описание:
-  # функция для генерации номеров ботов (нужна для анализа тестов из WealthLab)
-  # повторяющихся строк; бестолковая, тупо генерит бинарный ряд 2^n-1 и присваивает номера строкам
-  # Входные данные:
-  # n: степень двойки
-  # Выходные данные:
-  #   bot.num.table: таблица бинарных номеров роботов с присвоенными десятеричными номерами
-  # ----------
   #
   decimals <- seq(0, 2^n-1)
   m <- sapply(decimals,
@@ -219,19 +287,20 @@ BotBinNumGenLabsFile <- function(n) {
     {
       cbind(seq(1, length(.)), .)
     }
+  #
   return(bot.num.table)
 }
 #
+###
+#' Функция выставляет соответствие бинарных номеров ботов из WealthLab десятиричным номерам из bot.num.table
+#' 
+#' @param file Считанные данные
+#' @param bot.num.table Сгенерированный ряд бинарных и десятиричных номеров
+#'
+#' @return file$var0 Столбец с номерами
+#'
+#' @export
 BotNumSetLabsFile <- function(file, bot.num.table) {
-  # ----------
-  # Общее описание:
-  # Функция выставляет соответствие бинарных номеров ботов из WealthLab десятиричным номерам из bot.num.table
-  # Входные данные:
-  # file: считанные данные
-  # bot.num.table: сгенерированный ряд бинарных и десятиричных номеров
-  # Выходные данные:
-  # file$var0: столбей с номерами
-  # ----------
   #
   file.temp <- file
   file.temp$var1 <- NULL
@@ -246,18 +315,19 @@ BotNumSetLabsFile <- function(file, bot.num.table) {
     n <- which(file$var0 == bot.num.table[[i, 2]])
     file$var0[n] <- bot.num.table[[i, 1]]
   } 
+  #
   return(file$var0)
 }
 #
+###
+#' Функция выделяет уникальные наборы параметров ботов
+#' 
+#' @param file Данные тестов с присвоенными номерами ботов
+#'
+#' @return file Отфильтрованные данные (только уникальные номера ботов)
+#'
+#' @export
 FilterDuplicatedRow_LabsFile <- function(file) {
-  # ----------
-  # Общее описание:
-  # Функция выделяет уникальные наборы параметров ботов
-  # Входные данные:
-  # file: данные тестов с присвоенными номерами ботов
-  # Выходные данные:
-  # file: отфильтрованные данные (только уникальные номера ботов)
-  # ----------
   #
   file.temp <- file
   file.temp$profit <- NULL
@@ -267,118 +337,23 @@ FilterDuplicatedRow_LabsFile <- function(file) {
                           1, 
                           paste, collapse='')
   file <- file[which(duplicated(file.temp$var0) == FALSE), ]
+  #
   return(file)
 }
+#
+###
+#' Функция нормировки профита к просадке и к году 
+#' 
+#' @param file Данные бэков, содержащие profit и draw 
+#' @param m Количество месяцев торговли
+#'
+#' @return file$profit.norm Столбец нормированных доходностей
+#'
+#' @export
 NormProfit_LabsFile <- function(file, m) {
-  # ----------
-  # Общее описание:
-  # Функция нормировки профита к просадке и к году 
-  # Входные данные:
-  # file:  данные бэков, содержащие profit и draw 
-  # m: количество месяцев торговли
-  # Выходные данные:
-  # file$profit.norm: столбец нормированных доходностей
-  # ----------
   #
   file$profit.norm <- (file$profit*12) / (abs(file$draw)*m)
+  #
   return(file$profit.norm)
-}
-#
-Quantile_LabsFile <- function(data, var, q.hi = 0, q.low = 0, 
-                           two = FALSE, low = FALSE, hi = FALSE, abs = FALSE) {
-  # ----------
-  # Общее описание:
-  # Функция вычисление лучших / худших значений (на основе квантиля) 
-  # Входные данные:
-  # data: данные бэков
-  # var: столбец данных с качественной характеристикой
-  # q.hi: уровень квантиля для вычисления лучших значений (берётся всё, что выше квантиля)
-  # q.low: уровень квантиля для вычисления худших значений (берётся всё, что ниже квантиля)
-  # low, hi, two: вычисляем худшие / лучшие / "середину"  
-  # abs: если нужно, абсолютное значение квантиля (вычисленное ранее)
-  # Выходные данные:
-  # data: отфильтрованные данные
-  # ----------
-  #
-  if (two == TRUE) {
-    # подготовка данных
-    data <- data[order(-data[[var]]), ]
-    # вычисление квантилей
-    ifelse(abs == FALSE, 
-           q.hi.value <- quantile(data[[var]], q.hi),
-           q.hi.value <- as.numeric(q.hi))
-    n.hi <- which(data[, var] < q.hi.value)
-    ifelse(abs == FALSE, 
-           q.low.value <- quantile(data[[var]], q.low), 
-           q.low.value <- as.numeric(q.low)) 
-    data <- data[n.hi, ]
-    n.low <- which(data[, var] > q.low.value )
-    data <- data[n.low, ]
-    } 
-  if (hi == TRUE) {
-    data <- data[order(-data[[var]]), ]
-    ifelse(abs == FALSE, q.hi.value <- quantile(data[[var]], q.hi), q.hi.value <- as.numeric(q.hi))
-    n.hi <- which( data[, var] > q.hi.value )  
-    data <- data[n.hi, ]
-    }
-  if (low==TRUE) {
-    data <- data[order(-data[[var]]), ]
-    ifelse (abs == FALSE, q.low.value <- as.numeric(quantile(data[[var]], q.low)), q.low.value <- as.numeric(q.low)) 
-    n.low <- which( data[, var] < q.low.value )
-    data <- data[n.low, ]
-    }
-  #  
-  return(data)
-}
-#
-AllPreparation_LabsFile <- function(file.path, sep = ";",
-                                    autoParse = TRUE, 
-                                    m = FALSE, 
-                                    q.hi = FALSE, q.low = FALSE, low = FALSE, hi = FALSE,
-                                    one.scale = TRUE,  tslab = TRUE, trend.filter = TRUE,
-                                    ...) {
-  # ----------
-  # Общее описание:
-  # Итоговая функция для обработки данных из *Lab
-  # Входные данные:
-  # file.path, sep: путь и разделители для парсинга
-  # m: количество месяцев торговли 
-  # profit: (по умолчанию == FALSE, выбор идёт автоматически) номера столбца с данными по профиту 
-  # draw: (по умолчанию == FALSE, выбор идёт автоматически) номера столбца с данными по просадке  
-  # var.list: (по умолчанию == FALSE, выбор идёт автоматически) вектор с номерами столбцов переменных
-  # q.him q.low, loq, hi: параметры квантиля
-  # one.scale: нужно ли сохранить max/min заначения (для оптимизации тепловой шкалы)
-  # tslab: T/F данные из TSlab
-  # trend.filter: фильтровать или нет контртрендовые значения
-  # Выходные данные:
-  # data: полностью обработанные данные
-  # ----------
-  #
-  data <- Parse_LabsCSV(autoParse = TRUE, file.path = file.path, sort = FALSE, var.names = FALSE, sep)
-  if (tslab == FALSE) {
-    data$var0 <- BotNumSetLabsFile(data, bot.num.table)  
-    data <- FilterDuplicatedRow_LabsFile(data)
-  }
-  if (m != FALSE) {
-    data$profit.norm <- NormProfit_LabsFile(data, m = m) 
-    data <- data[which(data$profit.norm > 0), ]
-  } else {
-    data <- data[which(data$profit > 0), ]
-  }
-  if (trend.filter == TRUE) {
-    data <- data[which(data$var1 < data$var2), ] 
-  }
-  #
-  if (hi | low != FALSE) {
-    temp.ColName <-
-      colnames(data) %>%
-      length(.) 
-    data <- Quantile_LabsFile(data, var = temp.ColName, q.hi, q.low, hi, low, abs = FALSE)
-  }
-  if (one.scale == TRUE) {
-    data[nrow(data)+1, ] <- c(rep(0, length(var.list)+2), data$profit.norm[[which.max(data$profit.norm)]])
-    data[nrow(data)+1, ] <- c(rep(0, length(var.list)+3))
-  }
-  return(data)
 }
 #
