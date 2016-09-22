@@ -3,11 +3,11 @@
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #
 ### Линковка
-# source("libGen_Mining.R")
-# source("libGen_GetData.R")
-# source("libGen_Data.R")
-# source("libGen_Quotes.R")
-# source("libGen_Perfomance.R")
+# source("generic_mining.R")
+# source("generic_getdata.R")
+# source("generic_data.R")
+# source("generic_quotes.R")
+# source("generic_perfomance.R")
 #
 ###
 #' Функция загружает, устанавливает и подключает необходимые пакеты 

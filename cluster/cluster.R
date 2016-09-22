@@ -40,7 +40,11 @@ CalcKmean_Parameters <- function(data, test.range = 30, iter.max = 100, plusplus
                       Pct.Exp = p.exp)
   # вычисление оптимального количества кластеров
   # byVar: опт. число кластеров определяется как min число, описывающее 90% пространства
-  n.byVar <- min(which(p.exp > 0.9) )
+  n.byVar <- 
+    {
+      min(which(ss.df$Pct.Exp > 0.9))
+    } %>%
+    ss.df$Num.Of.Clusters[.]
   # byElbow: опт. число определяется "методом локтя"
   #n.byElbow <- FindMaxDistancePoint(ss.df$p.exp[-1]) + 1
   #n <- c(n.byVar, n.byElbow)

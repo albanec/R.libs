@@ -1,10 +1,9 @@
-# source("libEva_Dates.R")
-# source("libEva_Deals.R")
-# source("libEva_Drawdown.R")
-# source("libEva_Profit.R")
-# source("libEva_ProfitDays.R")
-# source("libEva_ProfitDeals.R")
-# source("libEva_Ratio.R")
+### Подключение дочерних библиотек
+# source("evaluation_dates.R")
+# source("evaluation_deals.R")
+# source("evaluation_drawdown.R")
+# source("evaluation_profit.R")
+# source("evaluation_ratio.R")
 #
 ###
 #' Расчет perfomance-метрик 
